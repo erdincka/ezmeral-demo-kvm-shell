@@ -86,9 +86,10 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null
     virsh change-media "${NAME}" sda --eject --config &>/dev/null
     # Remove the cloud init file
     rm -f "${META_DATA}" "${USER_DATA}" "${NAME}-ci.iso" &>/dev/null
+    # set autostart at boot
     virsh autostart ${NAME} &>/dev/null 
-    # echo "${NAME} ${IP:-noIP}"
-    echo "ssh -i ${LOCAL_SSH_PRV_KEY_PATH} -o StrictHostKeyChecking=no centos@${IP:-noIP}"
+    # completed
+    echo "${NAME} ready at: ssh -i ${LOCAL_SSH_PRV_KEY_PATH} -o StrictHostKeyChecking=no centos@${IP:-noIP}"
 
 popd > /dev/null
 
