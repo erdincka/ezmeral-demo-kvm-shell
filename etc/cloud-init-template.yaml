@@ -1,0 +1,27 @@
+#cloud-config
+
+# Hostname management
+preserve_hostname: False
+hostname: ${NAME}
+fqdn: ${NAME}.${DOMAIN}
+
+# Configure where output will go
+output: 
+  all: ">> /var/log/cloud-init.log"
+
+# configure interaction with ssh server
+ssh_svcname: ssh
+ssh_deletekeys: True
+ssh_genkeytypes: ['rsa', 'ecdsa']
+
+# Install public key for centos user
+ssh_authorized_keys:
+  - ${SSH_PUB_KEY}
+
+# Remove cloud-init when finished with it
+runcmd:
+  - [ yum, -y, remove, cloud-init ]
+  - echo "ip_resolve=4" >> /etc/yum.conf
+  - hostnamectl set-hostname ${NAME}.${DOMAIN}
+  - timedatectl set-timezone "${TIMEZONE}"
+  
