@@ -18,7 +18,6 @@ DISK3=${NAME}-disk3.qcow2
 USER_DATA=user-data
 META_DATA=meta-data
 SSH_PUB_KEY=$(<${LOCAL_SSH_PUB_KEY_PATH})
-BRIDGE=$(virsh net-info default | grep -e ^Bridge: | awk '{ print $2 }')
 
 CLOUD_INIT=$(eval "cat <<EOF
 $(<./etc/cloud-init-template.yaml)
@@ -43,14 +42,13 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null
     else
         qemu-img create -f qcow2 "${DISK2}" "${DATADISKSIZE}" &>/dev/null
         qemu-img create -f qcow2 "${DISK3}" "${DATADISKSIZE}" &>/dev/null
-        DATADISKS="--disk "${DISK2}",format=qcow2,bus=virtio --disk "${DISK3}",format=qcow2,bus=virtio"
-        # echo "${DATADISKS}"
+        DATADISKS="--disk ${DISK2},format=qcow2,bus=virtio --disk ${DISK3},format=qcow2,bus=virtio"
     fi
     if [[ "${PUBLICNETNAME}" == "" ]]
     then
         PUBLICNET=""
     else
-        PUBLICNET="--network network="${PUBLICNETNAME}" --extra-args='ip=eth1:dhcp'"
+        PUBLICNET="--network network=${PUBLICNETNAME}"
     fi
 
     virt-install \
@@ -63,11 +61,11 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null
         --network bridge="${BRIDGE}",model=virtio ${PUBLICNET} \
         --os-type Linux \
         --os-variant centos7.0 \
-        --noautoconsole &>/dev/null
+        --noautoconsole &>/dev/null || fail "virt-install failed"
 
     MAC=$(sudo virsh dumpxml ${NAME} | awk -F\' '/mac address/ {print $2}' | head -n 1)
     
-    echo -n "Waiting for IP "
+    # echo -n "Waiting for IP "
     while true
     do
         IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/"${BRIDGE}".status | head \
@@ -75,13 +73,12 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null
         if [ "$IP" = "" ]
         then
             sleep 2
-            echo -n '.'
+            # echo -n '.'
         else
             break
         fi
     done
 
-    echo
     # Eject cdrom
     virsh change-media "${NAME}" sda --eject --config &>/dev/null
     # Remove the cloud init file
@@ -89,7 +86,7 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null
     # set autostart at boot
     virsh autostart ${NAME} &>/dev/null 
     # completed
-    echo "${NAME} ready at: ssh -i ${LOCAL_SSH_PRV_KEY_PATH} -o StrictHostKeyChecking=no centos@${IP:-noIP}"
+    # echo "${NAME} ready at: ssh -i ${LOCAL_SSH_PRV_KEY_PATH} -o StrictHostKeyChecking=no centos@${IP:-noIP}"
 
 popd > /dev/null
 

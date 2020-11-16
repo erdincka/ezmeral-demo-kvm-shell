@@ -4,7 +4,7 @@
 To re-utilize scripts and processes by https://github.com/hpe-container-platform-community/hcp-demo-env-aws-terraform/
 
 ## Pre-requisites
-- CentOS/RHEL 7+ (tested on Ubuntu 20.04LTS Host)
+- CentOS/RHEL 7+, Ubuntu 18.04+ (tested on CentOS 8.2 and Ubuntu 20.04LTS Hosts)
 - libvirt, qemu-kvm, libvirt-client, virt-manager
 - Python3, openssh, nc, curl, ipcalc, hpecp
 - Passwordless sudo
@@ -73,29 +73,17 @@ vi etc/kvm_config.sh
 
 > <code>CENTOS_IMAGE_FILE=_path-to-local CentOS-7-x86_64-GenericCloud-2003.qcow2_</code>
 
-> <code>TIMEZONE=_your time zone in ?? format_ ie, "Asia/Dubai"</code>
+> <code>TIMEZONE=_your time zone in IANA timezone format_ ie, "Asia/Dubai". Get valid formats using "timedatectl list-timezones"</code>
 
 > <code>EPIC_FILENAME="path-to-epic-installer"</code>
 
-> <code>EPIC_DL_URL=_url_</code> # to download EPIC_FILENAME
+> <code>EPIC_DL_URL=_url_</code> # to download EPIC_FILENAME (should be valid URL for wget, ie, ftp:// or http://)
 
-> <code>CREATE_EIP_GATEWAY=True|False</code> # to enable/disable direct local network access for gateway # work in progress
+> <code>CREATE_EIP_GATEWAY=True|False</code> # to enable/disable direct local network access for gateway # requires additional configuration, please see details in the kvm_create_new.sh.
 
 ### OPTIONAL # If you want customization
-> <code>DOMAIN="ecp.demo"</code>
-
-<pre># Define hosts in a rather strange way</pre>
-> <code>hosts=('controller' 'gw' 'host1' 'host2' 'host3')</code> # hostnames are hard coded (avoid using name gateway as it is resolving to KVM host within VMs)
-> <code>cpus=(16 4 8 8 8)</code>
-
-> <code>mems=(65536 32768 65536 65536 65536)</code>
-
-<pre># assign roles (for proper configuration script)</pre>
-<pre># possible roles: controller gateway worker ad rdp mapr1 mapr2</pre>
-> <code>roles=('controller' 'gateway' 'worker' 'worker' 'worker')</code>
-
-<pre># disk sizes (data disk size per host)</pre>
-> <code>disks=(512 0 512 512 512)</code>
+> <code>DOMAIN="ecp.demo"</code>Any name except .local
+> <code>KVM_NETWORK="default"</code>Will not be automatically created!
 
 ### Installation
 
@@ -110,11 +98,11 @@ ssh scripts/commands will be copied to <code>./generated</code> directory. And c
 
 ```shell
 ./generated/ssh_controller.sh
-./generated/ssh_gw.sh
+./generated/ssh_gateway.sh
 ```
 
-Open a browser to gateway (if CREATE_EIP_GATEWAY enabled an ip forwarding rule to ports 80/443/8080 will be created for local KVM host)
-> https://gw.ecp.demo
+Open a browser to gateway
+> https://ecp.garage.dubai/
 
 
 # TODO
@@ -131,9 +119,9 @@ Open a browser to gateway (if CREATE_EIP_GATEWAY enabled an ip forwarding rule t
 
 - [ ] Enable external MapR cluster
 
-- [ ] Clean up (unneeded variables etc)
+- [x] Clean up (unneeded variables etc)
 
-- [ ] Optimizations (less reboots, less modifications to source scripts etc)
+- [x] Optimizations (less reboots, less modifications to source scripts etc)
 
 - [ ] Enable mounted image catalog (nfs to avoid copying catalog images)
 

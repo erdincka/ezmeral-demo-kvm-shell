@@ -12,17 +12,17 @@ else
 fi
 
 source ./scripts/functions.sh
-# source ./scripts/kvm_functions.sh
+source ./etc/kvm_config.sh
 
-# if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
-#    AD_PRV_IP=$(get_ip_for_vm "ad")
-#    AD_PUB_IP=$AD_PRV_IP
-# fi
+if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
+   AD_PRV_IP=$(get_ip_for_vm "ad")
+   AD_PUB_IP=$AD_PRV_IP
+fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 [ "$PROJECT_DIR" ] || ( echo "ERROR: PROJECT_DIR is empty" && exit 1 )
 
-LOG_FILE="${PROJECT_DIR}"/generated/bluedata_install_output.txt
+LOG_FILE="${OUT_DIR}"/bluedata_install_output.txt
 [[ -f "$LOG_FILE" ]] && mv -f "$LOG_FILE" "${LOG_FILE}".old
 
 # Verify if all variables are set correctly
@@ -31,12 +31,10 @@ LOG_FILE="${PROJECT_DIR}"/generated/bluedata_install_output.txt
 
 [ "$EPIC_DL_URL" ] || ( echo "ERROR: EPIC_DL_URL is empty" && exit 1 )
 [ "$EPIC_FILENAME" ] || ( echo "ERROR: EPIC_FILENAME is empty" && exit 1 )
-# [ "$EPIC_DL_URL_NEEDS_PRESIGN" ] || ( echo "ERROR: EPIC_DL_URL_NEEDS_PRESIGN is empty" && exit 1 )
-# EPIC_DL_URL_PRESIGN_OPTIONS can be empty
 
 [ "${SELINUX_DISABLED}" ] || ( echo "ERROR: SELINUX_DISABLED is empty" && exit 1 )
 
-# CTRL_PRV_IP=$(get_ip_for_vm "controller")
+CTRL_PRV_IP=$(get_ip_for_vm "controller")
 CTRL_PRV_HOST="controller"
 CTRL_PRV_DNS=${CTRL_PRV_HOST}.${DOMAIN}
 if [ "${CREATE_EIP_CONTROLLER}" == "False" ]; then
@@ -103,8 +101,8 @@ fi
    exit 1 
 }
 
-GATW_PRV_IP=$(get_ip_for_vm "gw")
-GATW_PRV_HOST="gw"
+GATW_PRV_IP=$(get_ip_for_vm "gtwy")
+GATW_PRV_HOST="gtwy"
 GATW_PRV_DNS=${GATW_PRV_HOST}.${DOMAIN}
 if [ "${CREATE_EIP_GATEWAY}" == "False" ]; then
    GATW_PUB_IP=$GATW_PRV_IP
@@ -119,13 +117,13 @@ fi
 [ "$GATW_PUB_HOST" ] || ( echo "ERROR: GATW_PUB_HOST is empty - is the instance running?" && exit 1 )
 [ "$GATW_PRV_HOST" ] || ( echo "ERROR: GATW_PRV_HOST is empty - is the instance running?" && exit 1 )
 
-WORKER_COUNT=$(grep -c "host" "${HOSTS_FILE}")
+# WORKER_COUNT=$(grep -c "host" "${HOSTS_FILE}")
 
-WRKR_PRV_IPS=( $(get_ip_for_vm "host") )
+WRKR_PRV_IPS=( $(get_ip_for_vm "host1") $(get_ip_for_vm "host2") $(get_ip_for_vm "host3") )
 WRKR_PUB_IPS=${WRKR_PRV_IPS[@]}
 
 if [[ "$MAPR_CLUSTER1_COUNT" == "3" ]]; then
-   MAPR_CLUSTER1_HOSTS_PRV_IPS =$(grep mapr1 ${HOSTS_FILE})
+   MAPR_CLUSTER1_HOSTS_PRV_IPS =$( get_ip_for_vm "mapr1" get_ip_for_vm "mapr2" get_ip_for_vm "mapr3" )
    read -r -a MAPR_CLUSTER1_HOSTS_PRV_IPS <<< "$MAPR_CLUSTER1_HOSTS_PRV_IPS"
    read -r -a MAPR_CLUSTER1_HOSTS_PUB_IPS <<< "$MAPR_CLUSTER1_HOSTS_PUB_IPS"
 else
@@ -134,7 +132,7 @@ else
 fi
 
 if [[ "$MAPR_CLUSTER2_COUNT" == "3" ]]; then
-   MAPR_CLUSTER2_HOSTS_PRV_IPS =$(grep mapr2 ${HOSTS_FILE})
+   MAPR_CLUSTER2_HOSTS_PRV_IPS =$( get_ip_for_vm "mapr4" get_ip_for_vm "mapr5" get_ip_for_vm "mapr6" )
    read -r -a MAPR_CLUSTER2_HOSTS_PRV_IPS <<< "$MAPR_CLUSTER2_HOSTS_PRV_IPS"
    read -r -a MAPR_CLUSTER2_HOSTS_PUB_IPS <<< "$MAPR_CLUSTER2_HOSTS_PUB_IPS"
 else

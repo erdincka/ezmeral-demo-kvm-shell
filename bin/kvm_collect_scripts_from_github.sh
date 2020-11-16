@@ -97,9 +97,13 @@ pushd "${OUT_DIR}" > /dev/null
       sed -i 's/${hpecp_cli_log_file}/.\/generated\/hpecp_cli.log/' hpecp_cli_logging.conf
    fi
    # Extract certificate keys
-   [ ! -f ca-cert.pem ] && wget "https://github.com/hpe-container-platform-community/hcp-demo-env-aws-terraform/raw/master/bluedata_infra_variables.tf"
-   sed '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/!d;/-----END CERTIFICATE-----/q' bluedata_infra_variables.tf > ca-cert.pem
-   sed '/-----BEGIN RSA PRIVATE KEY-----/,/-----END RSA PRIVATE KEY-----/!d;/-----END RSA PRIVATE KEY-----/q' bluedata_infra_variables.tf > ca-key.pem
-   rm -f bluedata_infra_variables.tf
-   
+   if [ ! -f ca-cert.pem ]
+   then
+      wget "https://github.com/hpe-container-platform-community/hcp-demo-env-aws-terraform/raw/master/bluedata_infra_variables.tf"
+      sed '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/!d;/-----END CERTIFICATE-----/q' bluedata_infra_variables.tf > ca-cert.pem
+      sed '/-----BEGIN RSA PRIVATE KEY-----/,/-----END RSA PRIVATE KEY-----/!d;/-----END RSA PRIVATE KEY-----/q' bluedata_infra_variables.tf > ca-key.pem
+      rm -f bluedata_infra_variables.tf
+   fi   
 popd > /dev/null 
+
+exit 0
