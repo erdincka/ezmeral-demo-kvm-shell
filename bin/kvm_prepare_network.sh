@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
 
+### 
+# This is a helper file to create virsh network
+# 
+# first param is network name to create, will use $KVM_NETWORK from kvm_config.sh if omitted
+# second param is bridge name to attach, will use $KVM_NETWORK's bridge if omitted
+#
+### 
+
 source "./etc/kvm_config.sh"
 
 # Define network subnet (don't use CIDR like .0/24, it will be added automatically)
 NET=10.1.10
+NETWORK=${1:-${KVM_NETWORK}}
+BRIDGE=${2:-${BRIDGE}}
+
+echo Creating NAT network "${NETWORK}" on bridge "${BRIDGE}"
 
 VIRTUAL_NET_XML_FILE=$(mktemp)
 trap '{ rm -f $VIRTUAL_NET_XML_FILE; }' EXIT
 cat > ${VIRTUAL_NET_XML_FILE} <<- EOB
 <network>
-    <name>${KVM_NETWORK}</name>
+    <name>${NETWORK}</name>
     <bridge name='${BRIDGE}' stp='on' delay='0'/>
     <forward mode="nat"/>
         <ip address="${NET}.1" netmask="255.255.255.0">
@@ -23,8 +35,8 @@ EOB
 
 # Create network
 sudo virsh net-define ${VIRTUAL_NET_XML_FILE}
-sudo virsh net-start ${KVM_NETWORK}
-sudo virsh net-autostart ${KVM_NETWORK}
+sudo virsh net-start ${NETWORK}
+sudo virsh net-autostart ${NETWORK}
 
 # Enable IPv4 forwarding to/from virt-net
 if [ $(grep -c "net.ipv4.ip.forward" /etc/sysctl.conf) = 0 ]; then
