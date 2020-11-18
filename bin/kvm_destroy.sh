@@ -2,10 +2,15 @@
 
 source ./etc/kvm_config.sh
 
-if [[ -z ${VM_DIR} ]]
-then
-    fail "unkown vm folder"
-fi
+[[ ! -z ${VM_DIR} ]] || fail "unkown vm folder"
+
+# clean auth cache
+ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm controller)"
+ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm gtwy)"
+ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm ad)"
+ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm host1)"
+ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm host2)"
+ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm host3)"
 
 ### Remove VMs
 if [ -d ${VM_DIR} ]; then
