@@ -55,10 +55,8 @@ echo "Deploying VMs"
    #
    # <network>
    #    <name>sriov-net</name>
-   #    <uuid>46052a02-d6c0-429d-8f08-a0db0adda75b</uuid>
    #    <forward mode='hostdev' managed='yes'>
    #       <pf dev='eno5'/>
-   #       <address type='pci' domain='0x0000' bus='0x5d' slot='0x00' function='0x2'/>
    #    </forward>
    # </network>
    #
@@ -69,7 +67,7 @@ echo "Deploying VMs"
    # or manually set group to kvm
    #   sudo chgrp -R kvm /dev/vfio
    # ref: https://www.evonide.com/non-root-gpu-passthrough-setup/
-   ./bin/kvm_centos_vm.sh gtwy 8 32768 0 "sriov-net" || fail "cannot create gateway" &
+   ./bin/kvm_centos_vm.sh gtwy 8 32768 0 "${PUBLIC_NETWORK}" || fail "cannot create gateway" &
 
    # 2 hosts for K8s and 1 for EPIC
    ./bin/kvm_centos_vm.sh host1 16 65536 512G || fail "cannot create host1" &
