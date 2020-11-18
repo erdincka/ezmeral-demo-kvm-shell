@@ -70,14 +70,25 @@ spinner # display that we are working
 {
    {
    if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
-      echo "Setting gateway public IP"
-      sleep 5
-      ${SSHCMD} -T centos@$(get_ip_for_vm "gtwy") &>/dev/null <<ENDSSH
-         sudo yum install -y -q NetworkManager
-         sudo systemctl start NetworkManager
-         sudo nmcli connection add type ethernet con-name eth1 ifname eth1 ip4 ${GATW_PUB_IP}/24 &>/dev/null
-         sudo nmcli connection up eth1 ifname eth1 &>/dev/null
-ENDSSH
+      ### Use this if you want to enable port forwarding into VM (bridge/nat mode)
+      sudo iptables -I FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT
+      sudo iptables -I FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT
+	   sudo iptables -t nat -I PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP}
+	   sudo iptables -t nat -I PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22
+      ### try this if you want SR-IOV/passthrough network
+      # echo "Attaching public interface to gateway"
+      # virsh attach-device gtwy ./etc/passthrough_device.yaml &>/dev/null # need better scripting here
+      # setsebool -P virt_use_sysfs 1 &>/dev/null
+      ### try this for alias on bridge interface
+      # sudo ip address add ${GATW_PUB_IP}/24 dev ${HOST_INTERFACE}
+      # sudo iptables -I FORWARD -m state -d 192.168.122.0/24 --state NEW,RELATED,ESTABLISHED -j ACCEPT
+      # sudo iptables -t nat -I PREROUTING -d ${GATW_PUB_IP}/32 -p tcp --dport 22 -j DNAT --to-destination ${GATW_PRV_IP}:22
+      ### maual ip assignment within VM, need to configure iptables rules (not done yet, check above)
+      # echo "Setting gateway public IP"
+      # ${SSHCMD} -T centos@${GATW_PRV_IP} &>/dev/null <<ENDSSH
+      #    sudo ip address add ${GATW_PUB_IP}/24 dev eth1
+      #    sudo ip link set eth1 up
+# ENDSSH
    fi
    } &
 

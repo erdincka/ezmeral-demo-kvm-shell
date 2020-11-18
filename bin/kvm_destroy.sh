@@ -4,21 +4,23 @@ source ./etc/kvm_config.sh
 
 [[ ! -z ${VM_DIR} ]] || fail "unkown vm folder"
 
-# clean auth cache
-ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm controller)"
-ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm gtwy)"
-ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm ad)"
-ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm host1)"
-ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm host2)"
-ssh-keygen -f "~/.ssh/known_hosts" -R "$(get_ip_for_vm host3)"
+# Delete gateway forwarding rules
+sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT
+sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT
+sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP}
+sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22
+
 
 ### Remove VMs
 if [ -d ${VM_DIR} ]; then
     dir=($(ls -r ${VM_DIR}))
     for (( i = 0; i < ${#dir[@]}; ++i )); do
         {
-            virsh destroy ${dir[i]} &>/dev/null
-            virsh undefine ${dir[i]} &>/dev/null
+            vm=${dir[i]}
+            # clean from auth cache
+            ssh-keygen -f "${HOME}/.ssh/known_hosts" -R "$(get_ip_for_vm ${vm})" &>/dev/null
+            virsh destroy ${vm} &>/dev/null
+            virsh undefine ${vm} &>/dev/null
         } &
     done
     wait # for all VMs to be destroyed

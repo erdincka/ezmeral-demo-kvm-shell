@@ -1,0 +1,7 @@
+# Example file to assign SR-IOV device directly to VMs
+
+<hostdev mode='subsystem' type='pci' managed='yes'>
+  <source>
+     <address domain='0x0' bus='0x5d' slot='0x0' function='0x5'/>
+  </source>
+</hostdev>

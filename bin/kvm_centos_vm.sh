@@ -5,12 +5,11 @@ source ./etc/kvm_config.sh
 set -u
 set +x
 
-# Input should be host definition from kvm_config.sh (name, cores, mem, datadisk_size, public_bridge)
+# Input should be host definition from kvm_config.sh (name, cores, mem, datadisk_size)
 NAME=${1}
 CPUS=${2}
 MEM=${3}
 DATADISKSIZE=${4:-0}
-PUBLIC_BR=${5:-""}
 
 DISK1=${NAME}-disk1.qcow2
 DISK2=${NAME}-disk2.qcow2
@@ -44,12 +43,6 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null
         qemu-img create -f qcow2 "${DISK3}" "${DATADISKSIZE}" &>/dev/null
         DATADISKS="--disk ${DISK2},format=qcow2,bus=virtio --disk ${DISK3},format=qcow2,bus=virtio"
     fi
-    if [[ "${PUBLIC_BR}" == "" ]]
-    then
-        PUBLICNET=""
-    else
-        PUBLICNET="--network bridge=${PUBLIC_BR}"
-    fi
 
     virt-install \
         --import \
@@ -58,7 +51,7 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null
         --vcpus ${CPUS} \
         --disk "${DISK1}",format=qcow2,bus=virtio ${DATADISKS} \
         --disk "${NAME}-ci.iso",device=cdrom \
-        --network bridge="${BRIDGE}",model=virtio ${PUBLICNET} \
+        --network bridge="${BRIDGE}",model=virtio \
         --os-type Linux \
         --os-variant centos7.0 \
         --noautoconsole &>/dev/null || fail "virt-install failed"
