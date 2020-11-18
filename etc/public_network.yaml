@@ -1,6 +1,0 @@
-<network>
-  <name>${PUBLIC_NETWORK}</name>
-  <forward mode='bridge' managed='yes'>
-  
-  </forward>
-</network>

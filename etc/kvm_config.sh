@@ -4,7 +4,7 @@
 DOMAIN="ecp.demo"
 KVM_NETWORK="default"
 BRIDGE=$(virsh net-info "${KVM_NETWORK}" | grep -e ^Bridge: | awk '{ print $2 }')
-PUBLIC_NETWORK="public"
+PUBLIC_BRIDGE="br-bond0"
 
 # Gateway network
 PUBLIC_DOMAIN=garage.dubai

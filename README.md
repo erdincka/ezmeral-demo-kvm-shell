@@ -62,6 +62,11 @@ pip3 install --user hpecp
     - Centos: administrator user by default can do passwordless sudo
     - Ubuntu: https://linuxconfig.org/configure-sudo-without-password-on-ubuntu-20-04-focal-fossa-linux
 
+#### Create Bridge for gateway public interface
+This is an important step to be completed, and there are so many ways to configure networking on KVM hosts.
+You are expected to create a bridge interface before proceeding with the rest of this guide. 
+Ref: https://wiki.libvirt.org/page/Networking
+
 ### Collect and customize
 ```shell
 git clone https://github.com/hpe-container-platform-community/hcp-demo-env-kvm-bash.git 
@@ -80,6 +85,8 @@ vi etc/kvm_config.sh
 > <code>EPIC_DL_URL=_url_</code> # to download EPIC_FILENAME (should be valid URL for wget, ie, ftp:// or http://)
 
 > <code>CREATE_EIP_GATEWAY=True|False</code> # to enable/disable direct local network access for gateway # requires additional configuration, please see details in the kvm_create_new.sh.
+
+> <code>PUBLIC_BRIDGE="br0"</code> # please see above for creating and naming a bridge interface
 
 ### OPTIONAL # If you want customization
 > <code>DOMAIN="ecp.demo"</code>Any name except .local

@@ -49,25 +49,10 @@ fi
 echo "Deploying VMs"
 {
    ./bin/kvm_centos_vm.sh controller 16 65536 512G || fail "cannot create controller" &
-   # For gateway I used SRIOV to provide networking, below is the script used to create that SRIOV pool (replace eno5 with your host device)
-   # Adjust to your specific KVM network, best choices to use are either Bridge or Passthrough networking to physical network
+   # Changed public networking to use bridging, simpler and better supported
+   # You need to create a bridge with an interface accessing the local network
    # ref: https://wiki.libvirt.org/page/Networking
-   #
-   # <network>
-   #    <name>sriov-net</name>
-   #    <forward mode='hostdev' managed='yes'>
-   #       <pf dev='eno5'/>
-   #    </forward>
-   # </network>
-   #
-   # And vfio (sriov port mapping) requires non-root user access for /dev/vfio device tree
-   # edit and reload/restart udev device rules to change mapping
-   # edit file: /etc/udev/rules.d/10-qemu-hw-users.rules
-   #   add line: SUBSYSTEM=="vfio", OWNER="root", GROUP="kvm"
-   # or manually set group to kvm
-   #   sudo chgrp -R kvm /dev/vfio
-   # ref: https://www.evonide.com/non-root-gpu-passthrough-setup/
-   ./bin/kvm_centos_vm.sh gtwy 8 32768 0 "${PUBLIC_NETWORK}" || fail "cannot create gateway" &
+   ./bin/kvm_centos_vm.sh gtwy 8 32768 0 "${PUBLIC_BRIDGE}" || fail "cannot create gateway" &
 
    # 2 hosts for K8s and 1 for EPIC
    ./bin/kvm_centos_vm.sh host1 16 65536 512G || fail "cannot create host1" &
