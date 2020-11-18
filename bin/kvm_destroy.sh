@@ -5,11 +5,12 @@ source ./etc/kvm_config.sh
 [[ ! -z ${VM_DIR} ]] || fail "unkown vm folder"
 
 # Delete gateway forwarding rules
-sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT
-sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT
-sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP}
-sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22
-
+if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
+    sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT
+    sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT
+    sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP}
+    sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22
+fi
 
 ### Remove VMs
 if [ -d ${VM_DIR} ]; then
@@ -21,6 +22,7 @@ if [ -d ${VM_DIR} ]; then
             ssh-keygen -f "${HOME}/.ssh/known_hosts" -R "$(get_ip_for_vm ${vm})" &>/dev/null
             virsh destroy ${vm} &>/dev/null
             virsh undefine ${vm} &>/dev/null
+	    virsh pool-destroy ${vm} &>/dev/null
         } &
     done
     wait # for all VMs to be destroyed
