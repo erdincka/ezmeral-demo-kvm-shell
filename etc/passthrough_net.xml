@@ -1,0 +1,8 @@
+<!-- Sample file to assign SR-IOV physical device, so VFs will be automatically distributed by libvirtd -->
+
+<network>
+ <name>passthrough</name>
+ <forward mode='hostdev' managed='yes'>
+  <pf dev='eno5'/>
+ </forward>
+</network>

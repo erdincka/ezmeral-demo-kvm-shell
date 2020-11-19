@@ -33,3 +33,5 @@ scripts/end_user_scripts/embedded_mapr/3_setup_datatap_5.0.sh
 scripts/end_user_scripts/embedded_mapr/3_setup_datatap_new.sh
 scripts/end_user_scripts/standalone_mapr/setup_datatap_5.1.sh
 scripts/end_user_scripts/standalone_mapr/setup_ubuntu_mapr_sssd.sh
+generated
+etc/postcreate.sh.completed

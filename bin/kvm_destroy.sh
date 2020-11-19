@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
 
 source ./etc/kvm_config.sh
+set -u
 
 [[ ! -z ${VM_DIR} ]] || fail "unkown vm folder"
-
 # Delete gateway forwarding rules
 if [[ "${CREATE_EIP_GATEWAY}" == "True" ]]; then
-    gwip=$(get_ip_for_vm gtwy)
-    if [ ! -z $gwip ]; then
-        rule_exists=$(sudo iptables -L | grep ${gwip} | wc -l)
-        if [ $rule_exists != 0 ]; then
-            sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT || echo "no forward rule for 10000+ ports"
-            sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT || echo "no forward rule for ssh port"
-            sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP} || echo "no nat rule for 10000+ ports"
-            sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22 || echo "no nat rule for ssh port"
-        fi
+    # GATW_PRV_IP=192.168.122.63
+    source ./scripts/variables.sh
+    rule_exists=$(sudo iptables -L | grep ${GATW_PRV_IP} | wc -l)
+    if [ $rule_exists != 0 ]; then
+        sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT || echo "no forward rule for 10000+ ports"
+        sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT || echo "no forward rule for ssh port"
+        sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP} || echo "no nat rule for 10000+ ports"
+        sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22 || echo "no nat rule for ssh port"
     fi
 fi
 
@@ -32,6 +31,7 @@ if [ -d ${VM_DIR} ]; then
         } &
     done
     wait # for all VMs to be destroyed
+    ssh-keygen -f "/home/ubuntu/.ssh/known_hosts" -R "${GATW_PUB_IP}" &>/dev/null
     rm -rf ${VM_DIR} &>/dev/null
 fi
 
@@ -43,6 +43,7 @@ if [ -d "${OUT_DIR}" ]; then
 fi
 
 # Clean downloaded scripts and other generated files too
+set +u 
 if [[ "${1}" == "all" ]]; then
     echo "cleaning downloaded scripts"
     pushd ./scripts > /dev/null

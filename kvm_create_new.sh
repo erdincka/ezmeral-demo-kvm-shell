@@ -47,78 +47,67 @@ fi
 
 # create VMs
 echo "Deploying VMs"
-{
-   ./bin/kvm_centos_vm.sh controller 16 65536 512G || fail "cannot create controller" &
-   # Changed public networking to use bridging, simpler and better supported
-   # You need to create a bridge with an interface accessing the local network
-   # ref: https://wiki.libvirt.org/page/Networking
-   ./bin/kvm_centos_vm.sh gtwy 8 32768 || fail "cannot create gateway" &
+./bin/kvm_centos_vm.sh controller 16 65536 512G || fail "cannot create controller" &
+./bin/kvm_centos_vm.sh gtwy 8 32768 || fail "cannot create gateway" &
+# 2 hosts for K8s and 1 for EPIC
+./bin/kvm_centos_vm.sh host1 16 65536 512G || fail "cannot create host1" &
+./bin/kvm_centos_vm.sh host2 16 65536 512G || fail "cannot create host2" &
+./bin/kvm_centos_vm.sh host3 12 65536 512G || fail "cannot create host3" &
 
-   # 2 hosts for K8s and 1 for EPIC
-   ./bin/kvm_centos_vm.sh host1 16 65536 512G || fail "cannot create host1" &
-   ./bin/kvm_centos_vm.sh host2 16 65536 512G || fail "cannot create host2" &
-   ./bin/kvm_centos_vm.sh host3 12 65536 512G || fail "cannot create host3" &
+if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
+   ./bin/kvm_centos_vm.sh ad 4 8192 || fail "cannot create ad" &
+fi
 
-   if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
-      ./bin/kvm_centos_vm.sh ad 4 8192 || fail "cannot create ad" &
-   fi
-
-   wait # for all VMs to be ready
-} &
-spinner # display that we are working
+wait # for all VMs to be ready
 
 {
-   {
    if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
       echo "Setting gateway public IP"
       sleep 5 # wait for IP to be assigned
-      ### Use this if you want to enable port forwarding into VM (bridge/nat mode)
-      source ./scripts/variables.sh
-      # echo "Setting nat/forward rules"
-      sudo iptables -I FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT
-      sudo iptables -I FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT
-	   sudo iptables -t nat -I PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP}
-	   sudo iptables -t nat -I PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22
-      # echo "gateway accessible from outsite network"
-      ### try this if you want SR-IOV/passthrough network
-      # echo "Attaching public interface to gateway"
-      # virsh attach-device gtwy ./etc/passthrough_device.yaml &>/dev/null # need better scripting here
-      # setsebool -P virt_use_sysfs 1 &>/dev/null
-      ### try this for alias on bridge interface
-      # sudo ip address add ${GATW_PUB_IP}/24 dev ${HOST_INTERFACE}
-      # sudo iptables -I FORWARD -m state -d 192.168.122.0/24 --state NEW,RELATED,ESTABLISHED -j ACCEPT
-      # sudo iptables -t nat -I PREROUTING -d ${GATW_PUB_IP}/32 -p tcp --dport 22 -j DNAT --to-destination ${GATW_PRV_IP}:22
-      ### maual ip assignment within VM, need to configure iptables rules (not done yet, check above)
-      # ${SSHCMD} -T centos@${GATW_PRV_IP} &>/dev/null <<ENDSSH
-      #    sudo ip address add ${GATW_PUB_IP}/24 dev eth1
-      #    sudo ip link set eth1 up
-# ENDSSH
+      virsh attach-device gtwy ./etc/passthrough_device.xml
+      # setsebool -P virt_use_sysfs 1 &>/dev/null # in case needed for CentOS/RHEL
+      IFCFG=$(eval "cat <<EOF
+      $(<./etc/ifcfg-eth1.template)
+EOF
+      " 2> /dev/null)
+      echo "$IFCFG"
+      echo "al sana amk"
+      source ./scripts/variables.sh # update private ip
+      ${SSHCMD} -T centos@${GATW_PRV_IP} <<ENDSSH
+         # sudo yum install -y -q NetworkManager &>/dev/null
+         # sudo systemctl start NetworkManager &>/dev/null
+         # sudo nmcli connection add type ethernet con-name eth1 ifname eth1 ip4 ${GATW_PUB_IP}/24
+         # sudo nmcli con up eth1 ifname eth1 
+         echo "$IFCFG" | sudo tee /etc/sysconfig/network-scripts/ifcfg-eth1
+         echo "eth1 configuration updated with"
+         echo "$IFCFG"
+         sudo systemctl restart network
+         echo "public ip is available"
+ENDSSH
    fi
-   } &
-
-   {
-   if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
-      echo "Setting up AD, please wait"
-      sleep 5
-      scp -o StrictHostKeyChecking=no -i "${LOCAL_SSH_PRV_KEY_PATH}" -T \
-         ./scripts/ad_files/* centos@$(get_ip_for_vm "ad"):~/ &>/dev/null
-      ${SSHCMD} -T centos@$(get_ip_for_vm "ad") &>/dev/null <<EOT
-         ### Hack to avoid same run each time with updates, possibly should move to post create
-         [ -f ad_set_posix_classes.log ] && exit 0
-         set -ex
-         sudo yum install -y -q docker openldap-clients &>/dev/null 
-         sudo service docker start &>/dev/null 
-         sudo systemctl enable docker &>/dev/null 
-         . /home/centos/run_ad.sh &>/dev/null
-         sleep 120
-         . /home/centos/ldif_modify.sh
-EOT
-      echo "AD configured"
-   fi
-   } &
-   wait # for updated VMs
 } &
-spinner
+
+{
+if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
+   echo "Setting up AD, please wait"
+   sleep 5
+   scp -o StrictHostKeyChecking=no -i "${LOCAL_SSH_PRV_KEY_PATH}" -T \
+      ./scripts/ad_files/* centos@$(get_ip_for_vm "ad"):~/ &>/dev/null
+   ${SSHCMD} -T centos@$(get_ip_for_vm "ad") &>/dev/null <<EOT
+      ### Hack to avoid same run each time with updates, possibly should move to post create
+      [ -f ad_set_posix_classes.log ] && exit 0
+      set -ex
+      sudo yum install -y -q docker openldap-clients &>/dev/null 
+      sudo service docker start &>/dev/null 
+      sudo systemctl enable docker &>/dev/null 
+      . /home/centos/run_ad.sh &>/dev/null
+      sleep 120
+      . /home/centos/ldif_modify.sh
+EOT
+   echo "AD configured"
+fi
+} &
+wait # for updated VMs
 
 print_header "Running ./scripts/post_refresh_or_apply.sh"
 ./scripts/post_refresh_or_apply.sh
@@ -158,32 +147,10 @@ echo "${SSHCMD} centos@$(get_ip_for_vm host2) \$1" > "${OUT_DIR}"/ssh_host2.sh
 echo "${SSHCMD} centos@(get_ip_for_vm host3) \$1" > "${OUT_DIR}"/ssh_host3.sh
 chmod +x "${OUT_DIR}"/*.sh
 
-# # # Download image catalog to controller
-# # if [ ! -z "${IMAGE_CATALOG}" ]; then
-# #    echo -n "Do you want to download images from local catalog?"
-# #    read -n 1 res
-# #    if [ "$res" == [Yy] ]; then
-# #       echo "This will take long..."
-# #       "${OUT_DIR}"/ssh_controller.sh "wget --no-proxy -e dotbytes=10M -c -nd -np --no-clobber -P /srv/bluedata/catalog ${IMAGE_CATALOG} && chmod 750 /srv/bluedata/catalog/*"
-# #    else
-# #       echo "Skipped catalog download"
-# #    fi
-# # fi
+print_term_width '-'
+echo "Run "${OUT_DIR}"/get_public_endpoints.sh for all connection details."
+print_term_width '-'
 
-# # if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
-# #    # Switch to gateway
-# #    ./scripts/kvm_ipforwarding.sh controller off
-# #    ./scripts/kvm_ipforwarding.sh gw on
-# #    ## TODO: need to verify network name and bridge interface name
-# #    # sudo virsh attach-interface --domain gw --type bridge --source virbr0 --model virtio --config --live  
-# #    # myip=$(virsh domifaddr gw)
-# #    # GATW_PUB_IP=${myip}
-# # fi
-
-# print_term_width '-'
-# echo "Run "${OUT_DIR}"/get_public_endpoints.sh for all connection details."
-# print_term_width '-'
-
-# print_term_width '='
+print_term_width '='
 
 exit 0

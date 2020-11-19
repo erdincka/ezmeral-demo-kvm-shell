@@ -1,6 +1,0 @@
-<network>
- <name>sriov-net</name>
- <forward mode='hostdev' managed='yes'>
-  <pf dev='eno5'/>
- </forward>
-</network>

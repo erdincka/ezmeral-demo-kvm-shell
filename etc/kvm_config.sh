@@ -8,7 +8,7 @@ BRIDGE=$(virsh net-info "${KVM_NETWORK}" | grep -e ^Bridge: | awk '{ print $2 }'
 # Gateway network
 # PUBLIC_BRIDGE="br-bond0"
 PUBLIC_DOMAIN=garage.dubai
-GATW_PUB_IP=10.1.1.21 # this script assumes this is /24 subnet - replace in kvm_create_new.sh if needed
+GATW_PUB_IP=10.1.1.22 # this script assumes this is /24 subnet - replace in kvm_create_new.sh if needed
 # GATW_PUB_GW=10.1.1.1
 # GATW_PUB_MASK=255.255.255.0
 GATW_PUB_HOST=ecp
@@ -67,14 +67,14 @@ function get_ip_for_vm {
 }
 
 # https://unix.stackexchange.com/a/225183
-function spinner {
-   PID=$!
-   i=1
-   sp="/-\|"
-   echo -n ' '
-   while [ -d /proc/$PID ]
-   do
-      sleep 0.5
-      printf "\b${sp:i++%${#sp}:1}"
-   done
-}
+# function spinner {
+#    PID=$!
+#    i=1
+#    sp="/-\|"
+#    echo -n ' '
+#    while [ -d /proc/$PID ]
+#    do
+#       sleep 0.5
+#       printf "\b${sp:i++%${#sp}:1}"
+#    done
+# }

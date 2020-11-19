@@ -110,6 +110,14 @@ if [ "${CREATE_EIP_GATEWAY}" == "False" ]; then
    GATW_PUB_DNS=$GATW_PRV_DNS
 fi
 
+function set_iptables {
+   sudo iptables -I FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT 
+   sudo iptables -I FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT 
+   sudo iptables -t nat -I PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP} 
+   sudo iptables -t nat -I PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22 
+   echo "nat rules updated"
+}
+
 [ "$GATW_PRV_IP" ] || ( echo "ERROR: GATW_PRV_IP is empty - is the instance running?" && exit 1 )
 [ "$GATW_PUB_IP" ] || ( echo "ERROR: GATW_PUB_IP is empty - is the instance running?" && exit 1 )
 [ "$GATW_PRV_DNS" ] || ( echo "ERROR: GATW_PRV_DNS is empty - is the instance running?" && exit 1 )
