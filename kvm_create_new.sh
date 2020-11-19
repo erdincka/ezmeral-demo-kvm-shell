@@ -7,7 +7,7 @@ source ./etc/kvm_config.sh
 
 echo "Checking scripts"
 ./bin/kvm_collect_scripts_from_github.sh || fail "unable to collect required scripts"
-source ./scripts/functions.sh
+source ./scripts/functions.sh 
 
 echo "Checking host prerequisites"
 ./scripts/check_prerequisites.sh || fail "pre-requisites failed for host"
@@ -52,7 +52,7 @@ echo "Deploying VMs"
    # Changed public networking to use bridging, simpler and better supported
    # You need to create a bridge with an interface accessing the local network
    # ref: https://wiki.libvirt.org/page/Networking
-   ./bin/kvm_centos_vm.sh gtwy 8 32768 0 "${PUBLIC_BRIDGE}" || fail "cannot create gateway" &
+   ./bin/kvm_centos_vm.sh gtwy 8 32768 || fail "cannot create gateway" &
 
    # 2 hosts for K8s and 1 for EPIC
    ./bin/kvm_centos_vm.sh host1 16 65536 512G || fail "cannot create host1" &
@@ -70,11 +70,16 @@ spinner # display that we are working
 {
    {
    if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
+      echo "Setting gateway public IP"
+      sleep 5 # wait for IP to be assigned
       ### Use this if you want to enable port forwarding into VM (bridge/nat mode)
+      source ./scripts/variables.sh
+      # echo "Setting nat/forward rules"
       sudo iptables -I FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT
       sudo iptables -I FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT
 	   sudo iptables -t nat -I PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP}
 	   sudo iptables -t nat -I PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22
+      # echo "gateway accessible from outsite network"
       ### try this if you want SR-IOV/passthrough network
       # echo "Attaching public interface to gateway"
       # virsh attach-device gtwy ./etc/passthrough_device.yaml &>/dev/null # need better scripting here
@@ -84,7 +89,6 @@ spinner # display that we are working
       # sudo iptables -I FORWARD -m state -d 192.168.122.0/24 --state NEW,RELATED,ESTABLISHED -j ACCEPT
       # sudo iptables -t nat -I PREROUTING -d ${GATW_PUB_IP}/32 -p tcp --dport 22 -j DNAT --to-destination ${GATW_PRV_IP}:22
       ### maual ip assignment within VM, need to configure iptables rules (not done yet, check above)
-      # echo "Setting gateway public IP"
       # ${SSHCMD} -T centos@${GATW_PRV_IP} &>/dev/null <<ENDSSH
       #    sudo ip address add ${GATW_PUB_IP}/24 dev eth1
       #    sudo ip link set eth1 up
@@ -94,7 +98,7 @@ spinner # display that we are working
 
    {
    if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
-      echo "Setting up AD"
+      echo "Setting up AD, please wait"
       sleep 5
       scp -o StrictHostKeyChecking=no -i "${LOCAL_SSH_PRV_KEY_PATH}" -T \
          ./scripts/ad_files/* centos@$(get_ip_for_vm "ad"):~/ &>/dev/null
@@ -109,6 +113,7 @@ spinner # display that we are working
          sleep 120
          . /home/centos/ldif_modify.sh
 EOT
+      echo "AD configured"
    fi
    } &
    wait # for updated VMs

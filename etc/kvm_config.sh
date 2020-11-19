@@ -9,7 +9,6 @@ BRIDGE=$(virsh net-info "${KVM_NETWORK}" | grep -e ^Bridge: | awk '{ print $2 }'
 # PUBLIC_BRIDGE="br-bond0"
 PUBLIC_DOMAIN=garage.dubai
 GATW_PUB_IP=10.1.1.21 # this script assumes this is /24 subnet - replace in kvm_create_new.sh if needed
-GATW_PRV_IP=$(get_ip_for_vm "gtwy")
 # GATW_PUB_GW=10.1.1.1
 # GATW_PUB_MASK=255.255.255.0
 GATW_PUB_HOST=ecp

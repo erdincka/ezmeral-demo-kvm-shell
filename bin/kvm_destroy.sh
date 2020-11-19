@@ -5,11 +5,17 @@ source ./etc/kvm_config.sh
 [[ ! -z ${VM_DIR} ]] || fail "unkown vm folder"
 
 # Delete gateway forwarding rules
-if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
-    sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT
-    sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT
-    sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP}
-    sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22
+if [[ "${CREATE_EIP_GATEWAY}" == "True" ]]; then
+    gwip=$(get_ip_for_vm gtwy)
+    if [ ! -z $gwip ]; then
+        rule_exists=$(sudo iptables -L | grep ${gwip} | wc -l)
+        if [ $rule_exists != 0 ]; then
+            sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT || echo "no forward rule for 10000+ ports"
+            sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT || echo "no forward rule for ssh port"
+            sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP} || echo "no nat rule for 10000+ ports"
+            sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22 || echo "no nat rule for ssh port"
+        fi
+    fi
 fi
 
 ### Remove VMs
@@ -22,7 +28,7 @@ if [ -d ${VM_DIR} ]; then
             ssh-keygen -f "${HOME}/.ssh/known_hosts" -R "$(get_ip_for_vm ${vm})" &>/dev/null
             virsh destroy ${vm} &>/dev/null
             virsh undefine ${vm} &>/dev/null
-	    virsh pool-destroy ${vm} &>/dev/null
+	        virsh pool-destroy ${vm} &>/dev/null
         } &
     done
     wait # for all VMs to be destroyed

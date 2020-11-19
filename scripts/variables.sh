@@ -101,6 +101,7 @@ fi
    exit 1 
 }
 
+GATW_PRV_IP=$(get_ip_for_vm "gtwy")
 GATW_PRV_HOST="gtwy"
 GATW_PRV_DNS=${GATW_PRV_HOST}.${DOMAIN}
 if [ "${CREATE_EIP_GATEWAY}" == "False" ]; then
