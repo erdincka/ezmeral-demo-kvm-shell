@@ -41,14 +41,7 @@ You can use recommended settings with ./bin/kvm_prepare_network.sh (edit before 
 '''
 echo "Using ${KVM_NETWORK} network"
 
-is_netactive=$(virsh net-info ${KVM_NETWORK} | grep -e ^Active: | awk '{ print $2 }')
-if [[ "${is_netactive}" != "yes" ]]
-then
-   echo "Starting ${KVM_NETWORK}"
-   sudo virsh net-start ${KVM_NETWORK}
-else
-   echo "Using ${KVM_NETWORK} network"
-fi
+[[ $(virsh net-info ${KVM_NETWORK} | grep -e ^Active: | awk '{ print $2 }') == "yes" ]] && echo "Using ${KVM_NETWORK} network" || sudo virsh net-start ${KVM_NETWORK}
 
 # Need the key pair for paswordless login
 if [[ ! -f  "${LOCAL_SSH_PRV_KEY_PATH}" ]]; then
@@ -80,14 +73,15 @@ wait # for all VMs to be ready
       virsh attach-device gtwy ./etc/passthrough_device.xml
       # setsebool -P virt_use_sysfs 1 &>/dev/null # in case needed for CentOS/RHEL
       IFCFG=$(eval "cat <<EOF
-      $(<./etc/ifcfg-eth1.template)
+$(<./etc/ifcfg-eth1.template)
 EOF
       " 2> /dev/null)
       source ./scripts/variables.sh # update private ip
       ${SSHCMD} -T centos@${GATW_PRV_IP} <<ENDSSH
          echo "$IFCFG" | sudo tee /etc/sysconfig/network-scripts/ifcfg-eth1
+         echo "DEFROUTE=no" | sudo tee -a /etc/sysconfig/network-scripts/ifcfg-eth0 >/dev/null
+         echo 'interface "eth0" { supersede routers; }' | sudo tee -a /etc/dhcp/dhclient.conf >/dev/null
          sudo systemctl restart network
-         echo "public ip is available"
 ENDSSH
    fi
 } &
