@@ -33,7 +33,7 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null
     echo "${CLOUD_INIT}" > ${USER_DATA}
     echo "instance-id: ${NAME}; local-hostname: ${NAME}" > ${META_DATA}
     genisoimage -output "${NAME}-ci.iso" -volid cidata -joliet -r ${USER_DATA} ${META_DATA} &>/dev/null || fail "geniso failed"
-    qemu-img create -f qcow2 -F qcow2 -b "${CENTOS_IMAGE_FILE}" "${DISK1}" &>/dev/null || fail "img create failed"
+    qemu-img create -f qcow2 -F qcow2 -b "${PROJECT_DIR}"/"${CENTOS_FILENAME}" "${DISK1}" &>/dev/null || fail "img create failed"
     qemu-img resize "${DISK1}" 512G &>/dev/null || fail "img resize failed"
     if [[ "${DATADISKSIZE}" == "0" ]]
     then

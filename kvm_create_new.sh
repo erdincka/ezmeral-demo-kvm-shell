@@ -1,9 +1,26 @@
 #!/usr/bin/env bash
 
 set -u # abort on undefined variable
-set +x # enable debug
+set +x # enable(-)/disable(+) debug
 
 source ./etc/kvm_config.sh
+
+# create directories
+echo "Preparing project folder"
+[[ -d "${PROJECT_DIR}" ]] || (sudo mkdir -p ${PROJECT_DIR} && sudo chown -R ${USER} ${PROJECT_DIR})
+[[ -d "${OUT_DIR}" ]] || mkdir -p ${OUT_DIR}
+[[ -d ./generated ]] || ln -s ${OUT_DIR} ./generated # if project_dir is different than current working dir
+echo "Getting CentOS image file"
+[[ -f "${PROJECT_DIR}"/"${CENTOS_FILENAME}" ]] || curl -# -o "${PROJECT_DIR}"/"${CENTOS_FILENAME}" "${CENTOS_DL_URL}"
+
+# ensure pre-requisites are installed
+echo "Using ${PKG_MANAGER} for installing missing packages"
+if [[ ${PKG_MANAGER} == "yum" ]]; then 
+   sudo yum install -q -y qemu-kvm libvirt libvirt-client virt-install python3 openssh nmap-ncat curl &>/dev/null
+else
+   sudo apt install -q -y qemu-kvm libvirt-daemon-system libvirt-clients virt-manager python3 python3-pip openssh-server &>/dev/null
+fi
+pip3 install --quiet --user ipcalc six hpecp &>/dev/null || fail "cannot update pip packages"
 
 echo "Checking scripts"
 ./bin/kvm_collect_scripts_from_github.sh || fail "unable to collect required scripts"
@@ -12,16 +29,17 @@ source ./scripts/functions.sh
 echo "Checking host prerequisites"
 ./scripts/check_prerequisites.sh || fail "pre-requisites failed for host"
 
-# checking network
-is_domainset=$(virsh net-dumpxml ${KVM_NETWORK} | grep ${DOMAIN})
-if [ -z "${is_domainset}" ]
-then
-   echo "Ensure your network set up properly for ${KVM_NETWORK}"
-   echo "You can configure recommended settings with ./bin/kvm_prepare_network.sh (edit before use)"
-   echo "You need <domain name='${DOMAIN}' localOnly='yes'/> in your NAT network configuration (edit with virsh net-edit ${KVM_NETWORK}"
-   echo "And restart libvirtd.service (sudo systemctl restart libvirtd.service)"
-   exit 1
-fi
+# checking network for ${DOMAIN} resolution
+virsh net-dumpxml ${KVM_NETWORK} | grep ${DOMAIN} || fail '''
+ERROR: VM network "'${KVM_NETWORK}'" not configured for local domain resolution
+You can use recommended settings with ./bin/kvm_prepare_network.sh (edit before use) or use steps below.
+- Edit net (virsh net-edit '${KVM_NETWORK}')
+  - Add: <domain name="'${DOMAIN}'" localOnly="yes" />
+- Destroy net (virsh net-destroy '${KVM_NETWORK}')
+- Start net with new settings (virsh net-start '${KVM_NETWORK}')
+- Restart service (sudo systemctl restart libvirtd.service)
+'''
+echo "Using ${KVM_NETWORK} network"
 
 is_netactive=$(virsh net-info ${KVM_NETWORK} | grep -e ^Active: | awk '{ print $2 }')
 if [[ "${is_netactive}" != "yes" ]]
@@ -31,11 +49,6 @@ then
 else
    echo "Using ${KVM_NETWORK} network"
 fi
-
-# create directories
-[[ -d "${PROJECT_DIR}" ]] || (sudo mkdir -p ${PROJECT_DIR} && sudo chown -R ${USER} ${PROJECT_DIR})
-[[ -d "${OUT_DIR}" ]] || mkdir -p ${OUT_DIR}
-[[ -d ./generated ]] || ln -s ${OUT_DIR} ./generated
 
 # Need the key pair for paswordless login
 if [[ ! -f  "${LOCAL_SSH_PRV_KEY_PATH}" ]]; then
@@ -47,15 +60,15 @@ fi
 
 # create VMs
 echo "Deploying VMs"
-./bin/kvm_centos_vm.sh controller 16 65536 512G || fail "cannot create controller" &
+./bin/kvm_centos_vm.sh controller 16 131072 512G || fail "cannot create controller" &
 ./bin/kvm_centos_vm.sh gtwy 8 32768 || fail "cannot create gateway" &
 # 2 hosts for K8s and 1 for EPIC
-./bin/kvm_centos_vm.sh host1 16 65536 512G || fail "cannot create host1" &
-./bin/kvm_centos_vm.sh host2 16 65536 512G || fail "cannot create host2" &
-./bin/kvm_centos_vm.sh host3 12 65536 512G || fail "cannot create host3" &
+./bin/kvm_centos_vm.sh host1 16 131072 512G || fail "cannot create host1" &
+./bin/kvm_centos_vm.sh host2 16 131072 512G || fail "cannot create host2" &
+./bin/kvm_centos_vm.sh host3 12 131072 512G || fail "cannot create host3" &
 
 if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
-   ./bin/kvm_centos_vm.sh ad 4 8192 || fail "cannot create ad" &
+   ./bin/kvm_centos_vm.sh ad 4 16384 || fail "cannot create ad" &
 fi
 
 wait # for all VMs to be ready
@@ -63,24 +76,16 @@ wait # for all VMs to be ready
 {
    if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
       echo "Setting gateway public IP"
-      sleep 5 # wait for IP to be assigned
+      sleep 10 # wait for IP to be assigned
       virsh attach-device gtwy ./etc/passthrough_device.xml
       # setsebool -P virt_use_sysfs 1 &>/dev/null # in case needed for CentOS/RHEL
       IFCFG=$(eval "cat <<EOF
       $(<./etc/ifcfg-eth1.template)
 EOF
       " 2> /dev/null)
-      echo "$IFCFG"
-      echo "al sana amk"
       source ./scripts/variables.sh # update private ip
       ${SSHCMD} -T centos@${GATW_PRV_IP} <<ENDSSH
-         # sudo yum install -y -q NetworkManager &>/dev/null
-         # sudo systemctl start NetworkManager &>/dev/null
-         # sudo nmcli connection add type ethernet con-name eth1 ifname eth1 ip4 ${GATW_PUB_IP}/24
-         # sudo nmcli con up eth1 ifname eth1 
          echo "$IFCFG" | sudo tee /etc/sysconfig/network-scripts/ifcfg-eth1
-         echo "eth1 configuration updated with"
-         echo "$IFCFG"
          sudo systemctl restart network
          echo "public ip is available"
 ENDSSH
@@ -89,11 +94,12 @@ ENDSSH
 
 {
 if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
-   echo "Setting up AD, please wait"
-   sleep 5
+   echo "Setting up AD, might take a while"
+   sleep 10
+   source ./scripts/variables.sh # update private ip
    scp -o StrictHostKeyChecking=no -i "${LOCAL_SSH_PRV_KEY_PATH}" -T \
-      ./scripts/ad_files/* centos@$(get_ip_for_vm "ad"):~/ &>/dev/null
-   ${SSHCMD} -T centos@$(get_ip_for_vm "ad") &>/dev/null <<EOT
+      ./scripts/ad_files/* centos@${AD_PRV_IP}:~/ &>/dev/null
+   ${SSHCMD} -T centos@${AD_PRV_IP} &>/dev/null <<EOT
       ### Hack to avoid same run each time with updates, possibly should move to post create
       [ -f ad_set_posix_classes.log ] && exit 0
       set -ex
@@ -118,12 +124,11 @@ print_header "Installing HCP"
 print_header "Installing HPECP CLI on Controller"
 ./bin/experimental/install_hpecp_cli.sh 
 
-# print_header "Installing demo apps (spark23 and spark24) onto controller from local repo"
-# ./scripts/kvm_upload_demo_apps.sh
-
 if [[ -f ./etc/postcreate.sh ]]; then
    print_header "Found ./etc/postcreate.sh so executing it"
-   ./etc/postcreate.sh && mv ./etc/postcreate.sh ./etc/postcreate.sh.completed
+   date -R
+   ./etc/postcreate.sh && mv ./etc/postcreate.sh ./etc/postcreate.sh.completed || fail "Fix issues before running ./etc/postcreate.sh script again"
+   date -R
 else
    print_header "./etc/postcreate.sh not found - skipping."
 fi

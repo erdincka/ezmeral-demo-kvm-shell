@@ -10,6 +10,8 @@ To re-utilize scripts and processes by https://github.com/hpe-container-platform
 - Passwordless sudo
 
 ## Prepare environment
+We will try to collect and install these tools. If this fails, you can always install these and re-run the scripts.
+
 - KVM & Qemu
 ```shell
 # Centos
@@ -76,7 +78,8 @@ vi etc/kvm_config.sh
 
 > <code>PROJECT_DIR=_this_</code>
 
-> <code>CENTOS_IMAGE_FILE=_path-to-local CentOS-7-x86_64-GenericCloud-2003.qcow2_</code>
+> <code>CENTOS_FILENAME=_CentOS-7-x86_64-GenericCloud-2003.qcow2_</code>
+> <code>CENTOS_DL_URL=_https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2003.qcow2_</code>
 
 > <code>TIMEZONE=_your time zone in IANA timezone format_ ie, "Asia/Dubai". Get valid formats using "timedatectl list-timezones"</code>
 

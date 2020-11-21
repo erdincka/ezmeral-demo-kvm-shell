@@ -17,9 +17,10 @@ AD_SERVER_ENABLED=True
 
 # Local settings
 TIMEZONE="Asia/Dubai"
-CENTOS_IMAGE_FILE="/data/CentOS-7-x86_64-GenericCloud-2003.qcow2"
+CENTOS_FILENAME="CentOS-7-x86_64-GenericCloud-2003.qcow2"
+CENTOS_DL_URL="http://10.1.1.202/files/osimages"/"${CENTOS_FILENAME}"
 EPIC_FILENAME="hpe-cp-rhel-release-5.1-3011.bin"
-EPIC_DL_URL="http://10.1.1.21/files/ezmeral/${EPIC_FILENAME}"
+EPIC_DL_URL="http://10.1.1.202/files/ezmeral/${EPIC_FILENAME}"
 
 PROJECT_DIR=/data/ecp
 VM_DIR="${PROJECT_DIR}"/vms
@@ -65,6 +66,21 @@ function fail {
 function get_ip_for_vm {
    echo -n $( echo $(virsh domifaddr ${1} --source agent | grep eth0 | head -n 1) | cut -d' ' -f 4 | cut -d'/' -f 1 )
 }
+
+# ref: https://unix.stackexchange.com/a/46086
+declare -A osInfo;
+osInfo[/etc/redhat-release]=yum
+# osInfo[/etc/arch-release]=pacman
+# osInfo[/etc/gentoo-release]=emerge
+# osInfo[/etc/SuSE-release]=zypp
+osInfo[/etc/debian_version]=apt
+
+for f in ${!osInfo[@]}
+do
+    if [[ -f $f ]];then
+        PKG_MANAGER=${osInfo[$f]}
+    fi
+done
 
 # https://unix.stackexchange.com/a/225183
 # function spinner {
