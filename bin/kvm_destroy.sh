@@ -4,18 +4,20 @@ source ./etc/kvm_config.sh
 set -u
 
 [[ ! -z ${VM_DIR} ]] || fail "unkown vm folder"
-# Delete gateway forwarding rules
-if [[ "${CREATE_EIP_GATEWAY}" == "True" ]]; then
-    # GATW_PRV_IP=192.168.122.63
-    source ./scripts/variables.sh
-    rule_exists=$(sudo iptables -L | grep ${GATW_PRV_IP} | wc -l)
-    if [ $rule_exists != 0 ]; then
-        sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT || echo "no forward rule for 10000+ ports"
-        sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT || echo "no forward rule for ssh port"
-        sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP} || echo "no nat rule for 10000+ ports"
-        sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22 || echo "no nat rule for ssh port"
-    fi
-fi
+
+# below is not used anymore - might use later (with bridged network instead of passthrough)
+# # Delete gateway forwarding rules
+# if [[ "${CREATE_EIP_GATEWAY}" == "True" ]]; then
+#     # GATW_PRV_IP=192.168.122.63
+#     source ./scripts/variables.sh
+#     rule_exists=$(sudo iptables -L | grep ${GATW_PRV_IP} | wc -l)
+#     if [ $rule_exists != 0 ]; then
+#         sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 10000:50000 -j ACCEPT || echo "no forward rule for 10000+ ports"
+#         sudo iptables -D FORWARD -o ${BRIDGE} -p tcp -d ${GATW_PRV_IP} --dport 22 -j ACCEPT || echo "no forward rule for ssh port"
+#         sudo iptables -t nat -D PREROUTING -p tcp --dport 10000:50000 -j DNAT --to ${GATW_PRV_IP} || echo "no nat rule for 10000+ ports"
+#         sudo iptables -t nat -D PREROUTING -p tcp --dport 7222 -j DNAT --to ${GATW_PRV_IP}:22 || echo "no nat rule for ssh port"
+#     fi
+# fi
 
 ### Remove VMs
 if [ -d ${VM_DIR} ]; then
@@ -61,10 +63,11 @@ if [[ "${1}" == "all" ]]; then
         rm -rf df-cluster-acl-ad_admin1.sh experimental
     popd > /dev/null
     if [ -d "${OUT_DIR}" ]; then
-        pushd "${OUT_DIR}" > /dev/null
-            rm -f hpecp_cli_logging.conf bluedata_infra_variables.tf \
-                ca-cert.pem ca-key.pem cert.pem controller.prv_key controller.pub_key hpecp.conf key.pem 
-        popd > /dev/null
+        rm -rf "${OUT_DIR}"
+        # pushd "${OUT_DIR}" > /dev/null
+        #     rm -f hpecp_cli_logging.conf bluedata_infra_variables.tf \
+        #         ca-cert.pem ca-key.pem cert.pem controller.prv_key controller.pub_key hpecp.conf key.pem 
+        # popd > /dev/null
     fi    
 fi
 

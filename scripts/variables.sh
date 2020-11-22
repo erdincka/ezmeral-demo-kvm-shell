@@ -34,8 +34,8 @@ LOG_FILE="${OUT_DIR}"/bluedata_install_output.txt
 
 [ "${SELINUX_DISABLED}" ] || ( echo "ERROR: SELINUX_DISABLED is empty" && exit 1 )
 
-CTRL_PRV_IP=$(get_ip_for_vm "controller")
-CTRL_PRV_HOST="controller"
+CTRL_PRV_IP=$(get_ip_for_vm "controller1")
+CTRL_PRV_HOST="controller1"
 CTRL_PRV_DNS=${CTRL_PRV_HOST}.${DOMAIN}
 if [ "${CREATE_EIP_CONTROLLER}" == "False" ]; then
    CTRL_PUB_IP=${CTRL_PRV_IP}
@@ -101,8 +101,8 @@ fi
    exit 1 
 }
 
-GATW_PRV_IP=$(get_ip_for_vm "gtwy")
-GATW_PRV_HOST="gtwy"
+GATW_PRV_IP=$(get_ip_for_vm "gateway1")
+GATW_PRV_HOST="gateway1"
 GATW_PRV_DNS=${GATW_PRV_HOST}.${DOMAIN}
 if [ "${CREATE_EIP_GATEWAY}" == "False" ]; then
    GATW_PUB_IP=$GATW_PRV_IP

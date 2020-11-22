@@ -30,7 +30,7 @@ echo "Checking host prerequisites"
 ./scripts/check_prerequisites.sh || fail "pre-requisites failed for host"
 
 # checking network for ${DOMAIN} resolution
-virsh net-dumpxml ${KVM_NETWORK} | grep ${DOMAIN} || fail '''
+[ $(virsh net-dumpxml ${KVM_NETWORK} | grep ${DOMAIN} | wc -l) -eq 1 ] || fail '''
 ERROR: VM network "'${KVM_NETWORK}'" not configured for local domain resolution
 You can use recommended settings with ./bin/kvm_prepare_network.sh (edit before use) or use steps below.
 - Edit net (virsh net-edit '${KVM_NETWORK}')
@@ -39,7 +39,6 @@ You can use recommended settings with ./bin/kvm_prepare_network.sh (edit before 
 - Start net with new settings (virsh net-start '${KVM_NETWORK}')
 - Restart service (sudo systemctl restart libvirtd.service)
 '''
-echo "Using ${KVM_NETWORK} network"
 
 [[ $(virsh net-info ${KVM_NETWORK} | grep -e ^Active: | awk '{ print $2 }') == "yes" ]] && echo "Using ${KVM_NETWORK} network" || sudo virsh net-start ${KVM_NETWORK}
 
@@ -52,16 +51,21 @@ if [[ ! -f  "${LOCAL_SSH_PRV_KEY_PATH}" ]]; then
 fi
 
 # create VMs
-echo "Deploying VMs"
-./bin/kvm_centos_vm.sh controller 16 131072 512G || fail "cannot create controller" &
-./bin/kvm_centos_vm.sh gtwy 8 32768 || fail "cannot create gateway" &
-# 2 hosts for K8s and 1 for EPIC
-./bin/kvm_centos_vm.sh host1 16 131072 512G || fail "cannot create host1" &
-./bin/kvm_centos_vm.sh host2 16 131072 512G || fail "cannot create host2" &
-./bin/kvm_centos_vm.sh host3 12 131072 512G || fail "cannot create host3" &
+./bin/kvm_add_node.sh controller &
+./bin/kvm_add_node.sh gateway &
+# ./bin/kvm_centos_vm.sh controller 16 $(expr 96 \* 1024) 512G || fail "cannot create controller" &
+# ./bin/kvm_centos_vm.sh gateway1 8 $(expr 24 \* 1024) || fail "cannot create gateway" &
+# # 2 hosts for K8s and 1 for EPIC
+./bin/kvm_add_node.sh kubenode &
+# give time for vmname to be taken before
+sleep 30 && ./bin/kvm_add_node.sh kubenode & 
+sleep 60 && ./bin/kvm_add_node.sh epicnode &
+# ./bin/kvm_centos_vm.sh host1 16 $(expr 96 \* 1024) 512G || fail "cannot create host1" &
+# ./bin/kvm_centos_vm.sh host2 16 $(expr 96 \* 1024) 512G || fail "cannot create host2" &
+# ./bin/kvm_centos_vm.sh host3 12 $(expr 96 \* 1024) 512G || fail "cannot create host3" &
 
 if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
-   ./bin/kvm_centos_vm.sh ad 4 16384 || fail "cannot create ad" &
+   ./bin/kvm_centos_vm.sh ad 4 $(expr 8 \* 1024) || fail "cannot create ad" &
 fi
 
 wait # for all VMs to be ready
@@ -69,18 +73,17 @@ wait # for all VMs to be ready
 {
    if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
       echo "Setting gateway public IP"
-      sleep 10 # wait for IP to be assigned
-      virsh attach-device gtwy ./etc/passthrough_device.xml
+      virsh attach-device gateway1 ./etc/passthrough_device.xml
       # setsebool -P virt_use_sysfs 1 &>/dev/null # in case needed for CentOS/RHEL
       IFCFG=$(eval "cat <<EOF
 $(<./etc/ifcfg-eth1.template)
 EOF
       " 2> /dev/null)
-      source ./scripts/variables.sh # update private ip
-      ${SSHCMD} -T centos@${GATW_PRV_IP} <<ENDSSH
-         echo "$IFCFG" | sudo tee /etc/sysconfig/network-scripts/ifcfg-eth1
-         echo "DEFROUTE=no" | sudo tee -a /etc/sysconfig/network-scripts/ifcfg-eth0 >/dev/null
-         echo 'interface "eth0" { supersede routers; }' | sudo tee -a /etc/dhcp/dhclient.conf >/dev/null
+      sleep 30 && source ./scripts/variables.sh # update private ip
+      ${SSHCMD} -T centos@${GATW_PRV_IP} &> /dev/null <<ENDSSH
+         echo "$IFCFG" | sudo tee /etc/sysconfig/network-scripts/ifcfg-eth1 
+         echo "DEFROUTE=no" | sudo tee -a /etc/sysconfig/network-scripts/ifcfg-eth0 
+         echo 'interface "eth0" { supersede routers; }' | sudo tee -a /etc/dhcp/dhclient.conf 
          sudo systemctl restart network
 ENDSSH
    fi
@@ -89,18 +92,17 @@ ENDSSH
 {
 if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
    echo "Setting up AD, might take a while"
-   sleep 10
-   source ./scripts/variables.sh # update private ip
+   sleep 30 && source ./scripts/variables.sh # update private ip
    scp -o StrictHostKeyChecking=no -i "${LOCAL_SSH_PRV_KEY_PATH}" -T \
       ./scripts/ad_files/* centos@${AD_PRV_IP}:~/ &>/dev/null
-   ${SSHCMD} -T centos@${AD_PRV_IP} &>/dev/null <<EOT
+   ${SSHCMD} -T centos@${AD_PRV_IP} &> /dev/null <<EOT
       ### Hack to avoid same run each time with updates, possibly should move to post create
       [ -f ad_set_posix_classes.log ] && exit 0
       set -ex
-      sudo yum install -y -q docker openldap-clients &>/dev/null 
-      sudo service docker start &>/dev/null 
-      sudo systemctl enable docker &>/dev/null 
-      . /home/centos/run_ad.sh &>/dev/null
+      sudo yum install -y -q docker openldap-clients 
+      sudo service docker start 
+      sudo systemctl enable docker 
+      . /home/centos/run_ad.sh 
       sleep 120
       . /home/centos/ldif_modify.sh
 EOT
@@ -129,8 +131,8 @@ fi
 
 cat > "${OUT_DIR}"/get_public_endpoints.sh <<EOF
 
-Controller: ${SSHCMD} centos@$(get_ip_for_vm controller)
-Gateway: ${SSHCMD} centos@$(get_ip_for_vm gtwy)
+Controller: ${SSHCMD} centos@$(get_ip_for_vm controller1)
+Gateway: ${SSHCMD} centos@$(get_ip_for_vm gateway1)
 AD: ${SSHCMD} centos@$(get_ip_for_vm ad)
 Host1: ${SSHCMD} centos@$(get_ip_for_vm host1)
 Host2: ${SSHCMD} centos@$(get_ip_for_vm host2)
@@ -138,8 +140,8 @@ Host3: ${SSHCMD} centos@(get_ip_for_vm host3)
 
 EOF
 
-echo "${SSHCMD} centos@$(get_ip_for_vm controller) \$1" > "${OUT_DIR}"/ssh_controller.sh
-echo "${SSHCMD} centos@$(get_ip_for_vm gtwy) \$1" > "${OUT_DIR}"/ssh_gateway.sh
+echo "${SSHCMD} centos@$(get_ip_for_vm controller1) \$1" > "${OUT_DIR}"/ssh_controller.sh
+echo "${SSHCMD} centos@$(get_ip_for_vm gateway1) \$1" > "${OUT_DIR}"/ssh_gateway.sh
 echo "${SSHCMD} centos@$(get_ip_for_vm ad) \$1" > "${OUT_DIR}"/ssh_ad.sh
 echo "${SSHCMD} centos@$(get_ip_for_vm host1) \$1" > "${OUT_DIR}"/ssh_host1.sh
 echo "${SSHCMD} centos@$(get_ip_for_vm host2) \$1" > "${OUT_DIR}"/ssh_host2.sh
