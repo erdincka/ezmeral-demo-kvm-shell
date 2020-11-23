@@ -5,11 +5,12 @@ source ./etc/kvm_config.sh
 set -u
 set +x
 
-# Input should be host definition from kvm_config.sh (name, cores, mem, datadisk_size)
+# Input should be host definition from kvm_config.sh (name, cores, mem, datadisk_size, [optional args to virt-install])
 NAME=${1}
 CPUS=${2}
 MEM=${3}
 DATADISKSIZE=${4:-0}
+INSTALL_OPTIONS=${5:-""}
 
 DISK1=${NAME}-disk1.qcow2
 DISK2=${NAME}-disk2.qcow2
@@ -54,7 +55,7 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null || fail "cannot find vmdir ${NAME}"
         --network bridge="${BRIDGE}",model=virtio \
         --os-type Linux \
         --os-variant centos7.0 \
-        --noautoconsole &> /dev/null || fail "virt-install failed"
+        --noautoconsole ${INSTALL_OPTIONS} &> /dev/null || fail "virt-install failed"
 
     MAC=$(sudo virsh dumpxml ${NAME} | awk -F\' '/mac address/ {print $2}' | head -n 1)
     
