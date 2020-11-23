@@ -59,9 +59,18 @@ CREATE_EIP_RDP_LINUX_SERVER=False
 SSHCMD="ssh -o StrictHostKeyChecking=no -i ${LOCAL_SSH_PRV_KEY_PATH}"
 
 function fail {
-   echo "${1}"
+   echo "ERROR: ${1}"
+   echo "RECOMMENDED ACTION: ${2:-'Check previous command output'}"
    exit 1
 }
+
+# ref: https://stackoverflow.com/a/54668619
+function wait_for_ssh {
+    until ${SSHCMD} -T centos@${1} true >/dev/null 2>&1; do 
+        echo -n "."
+        sleep 2
+    done
+}      
 
 function get_ip_for_vm {
    echo -n $( echo $(virsh domifaddr ${1} --source agent | grep eth0 | head -n 1) | cut -d' ' -f 4 | cut -d'/' -f 1 )

@@ -40,30 +40,23 @@ case ${TYPE} in
     echo "Creating ${vmname} as ${TYPE}"
     if [[ "${TYPE}" == "kubehost" ]]; then
       ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G || fail "cannot create ${vmname}"
-      # sleep 60
-      # ip=$(get_ip_for_vm ${vmname})
-      # [ ! -z ${ip} ] && ./bin/experimental/03_k8sworkers_add.sh "${ip}"
     else
       ./bin/kvm_centos_vm.sh ${vmname} 12 $(expr 96 \* 1024) 512G || fail "cannot create ${vmname}"
-      # sleep 60
-      # ip=$(get_ip_for_vm ${vmname})
-      # [ ! -z ${ip} ] && ./bin/experimental/epic_workers_add.sh "${ip}"
     fi
     ;;
   gpuhost)
     # # note that we are picking first available device here (head -n1), adjust as necessary
     busid=$(lspci -nn | grep -i nvidia | grep -Eo '^..:..\..' | head -n1)
-    echo "using ${busid}"
-
+    echo "using ${busid} for attached GPU"
     vmname=$(get_name "gpuhost")
     echo "Creating ${vmname}"
     ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G "--host-device ${busid}" || fail "cannot create ${vmname}"
     sleep 30
-    # echo "Starting NVidia driver installation"
     driver_file="NVIDIA-Linux-x86_64-450.80.02.run"
     [[ -f ${driver_file} ]] || curl -# -o ${PROJECT_DIR}/${driver_file} "https://us.download.nvidia.com/tesla/450.80.02/NVIDIA-Linux-x86_64-450.80.02.run"
     ip=$(get_ip_for_vm "${vmname}")
     scp -o StrictHostKeyChecking=no -i ${LOCAL_SSH_PRV_KEY_PATH} ${PROJECT_DIR}/${driver_file} centos@${ip}:~
+    echo "pre-configuration for GPU (might take a while)"
     ${SSHCMD} -T centos@${ip} << ENDSSH
       chmod +x ${driver_file}
       sudo mkdir -p /nvidia
@@ -81,17 +74,18 @@ EOF
       sudo reboot
 ENDSSH
     sleep 60
+    echo "post-configuration for GPU"
     ${SSHCMD} -T centos@${ip} <<ENDSSH
-      lsmod | grep nouveau
+      [ $(lsmod | grep nouveau | wc -l) -eq 0 ] && echo "conflicting video driver - nouveau" && exit 1
       cd /nvidia
       sudo ./${driver_file} -s
       [ $(nvidia-smi | grep "Tesla" | wc -l) -eq 1 ] || exit 1 # "Nvidia driver installation didn't work!"
       nvidia-modprobe -u -c=0
       sudo reboot
 ENDSSH
-    sleep 30
+    echo "wait until ${vmname} becomes ready"
+    wait_for_ssh "${ip}"
     echo "${vmname} installation completed, please add using GUI or provided worker add scripts"
-
     ;;
   gateway)
     vmname=$(get_name "gateway")

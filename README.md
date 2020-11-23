@@ -66,7 +66,7 @@ pip3 install --user hpecp
 
 #### Create Bridge for gateway public interface
 This is an important step to be completed, and there are so many ways to configure networking on KVM hosts.
-You are expected to create a bridge interface before proceeding with the rest of this guide. 
+You are expected to create a bridge interface before proceeding with the rest of this guide. This script uses SRIOV passthrough. Might need updates for other use cases.
 Ref: https://wiki.libvirt.org/page/Networking
 
 ### Collect and customize
@@ -76,14 +76,14 @@ cd hcp-demo-env-kvm-bash
 vi etc/kvm_config.sh
 ```
 
-> <code>PROJECT_DIR=_this_</code>
+> <code>PROJECT_DIR=_./ or /ecp (or anything else)_</code>
 
 > <code>CENTOS_FILENAME=_CentOS-7-x86_64-GenericCloud-2003.qcow2_</code>
 > <code>CENTOS_DL_URL=_https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2003.qcow2_</code>
 
 > <code>TIMEZONE=_your time zone in IANA timezone format_ ie, "Asia/Dubai". Get valid formats using "timedatectl list-timezones"</code>
 
-> <code>EPIC_FILENAME="path-to-epic-installer"</code>
+> <code>EPIC_FILENAME=_epic installer filename_"</code>
 
 > <code>EPIC_DL_URL=_url_</code> # to download EPIC_FILENAME (should be valid URL for wget, ie, ftp:// or http://)
 
@@ -91,7 +91,7 @@ vi etc/kvm_config.sh
 
 > <code>PUBLIC_BRIDGE="br0"</code> # please see above for creating and naming a bridge interface
 
-### OPTIONAL # If you want customization
+### OPTIONAL
 > <code>DOMAIN="ecp.demo"</code>Any name except .local
 > <code>KVM_NETWORK="default"</code>Will not be automatically created!
 
@@ -125,7 +125,7 @@ Open a browser to gateway
 
 - [x] Public IP via host interface
 
-- [ ] Enable RDP host
+- [ ] Enable RDP host (possibly not needed, low priority)
 
 - [ ] Enable external MapR cluster
 
@@ -134,6 +134,8 @@ Open a browser to gateway
 - [x] Optimizations (less reboots, less modifications to source scripts etc)
 
 - [ ] Enable mounted image catalog (nfs to avoid copying catalog images)
+
+- [ ] Use AWS scripts as subproject instead of manually downloading files
 
 # Troubleshooting 
 
