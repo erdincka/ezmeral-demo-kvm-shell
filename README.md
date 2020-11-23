@@ -121,7 +121,7 @@ Open a browser to gateway
 
 - [ ] Selectively deploy K8s cluster or EPIC cluster
 
-- [ ] Attach to GPU on host
+- [x] Attach to GPU on host
 
 - [x] Public IP via host interface
 
