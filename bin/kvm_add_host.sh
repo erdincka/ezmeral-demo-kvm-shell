@@ -8,13 +8,14 @@ source ./etc/kvm_config.sh
 [ -d ${PROJECT_DIR} ] || fail "This should be run after creating the cluster"
 
 usage(){
+  echo 
 	echo "Usage: $0 <type>"
   echo '''
   This script is provided to add extra nodes to the HPE Ezmeral Container Platform on this KVM host
   
-  <type>
-  kubenode | epicnode: 16-core 96GB memory
-  gpunude: 16-core 96GB memory with pci-passthrough device (gpu-device.xml)
+  <type> is on of the following
+  kubehost | epichost: 16-core 96GB memory
+  gpuhost: 16-core 96GB memory with pci-passthrough device (gpu-device.xml)
   gateway: 8-core 24GB memory
   controller: 16-core 96GB memory
 
@@ -34,10 +35,10 @@ get_name() {
 }
 
 case ${TYPE} in
-  kubenode | epicnode)
+  kubehost | epichost)
     vmname=$(get_name "host")
     echo "Creating ${vmname} as ${TYPE}"
-    if [[ "${TYPE}" == "kubenode" ]]; then
+    if [[ "${TYPE}" == "kubehost" ]]; then
       ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G || fail "cannot create ${vmname}"
       # sleep 60
       # ip=$(get_ip_for_vm ${vmname})
@@ -49,35 +50,48 @@ case ${TYPE} in
       # [ ! -z ${ip} ] && ./bin/experimental/epic_workers_add.sh "${ip}"
     fi
     ;;
-  gpunode)
-    # ref: https://www.server-world.info/en/note?os=Ubuntu_18.04&p=kvm&f=11
-    # first check if we can do passthrough
-    [[ -z "$(dmesg | grep 'IOMMU enabled')" ]] && fail "IOMMU not enabled in kernel"
-    
-    # note that we are picking first available device here (head -n1), adjust as necessary
-    pciid=$(lspci -nn | grep -i nvidia | grep -Eo '\[....:....\]' | sed "s/^\[//g" | sed "s/\]$//" | head -n1)
-    [[ -z ${pciid} ]] && fail "can't find any nvidia device"
-    
-    # check if device passed to vfio, add modprobe if not (requires reboot)
+  gpuhost)
+    # # note that we are picking first available device here (head -n1), adjust as necessary
     busid=$(lspci -nn | grep -i nvidia | grep -Eo '^..:..\..' | head -n1)
-    [[ -z "$(dmesg | grep -i vfio | grep ${busid})" ]] && echo "options vfio-pci ids=${pciid}" | \
-      sudo tee -a /etc/modprobe.d/vfio.conf > /dev/null && fail "VFIO was not enabled, reboot required"
     echo "using ${busid}"
-#     GPU_DEVICE_FILE=$(mktemp)
-#     trap '{ rm -f $GPU_DEVICE_FILE; }' EXIT
-#     cat > ${GPU_DEVICE_FILE} <<- EOB
-# <hostdev mode='subsystem' type='pci' managed='yes'>
-#   <source>
-#     <address domain='0x0000' bus="0x${busid:0:2}" slot="0x${busid:3:2}" function="0x${busid:6:1}"/>
-#   </source>
-# </hostdev>
-# EOB
 
     vmname=$(get_name "gpuhost")
     echo "Creating ${vmname}"
     ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G "--host-device ${busid}" || fail "cannot create ${vmname}"
-    # sleep 30
-    # virsh attach-device 
+    sleep 30
+    # echo "Starting NVidia driver installation"
+    driver_file="NVIDIA-Linux-x86_64-450.80.02.run"
+    [[ -f ${driver_file} ]] || curl -# -o ${PROJECT_DIR}/${driver_file} "https://us.download.nvidia.com/tesla/450.80.02/NVIDIA-Linux-x86_64-450.80.02.run"
+    ip=$(get_ip_for_vm "${vmname}")
+    scp -o StrictHostKeyChecking=no -i ${LOCAL_SSH_PRV_KEY_PATH} ${PROJECT_DIR}/${driver_file} centos@${ip}:~
+    ${SSHCMD} -T centos@${ip} << ENDSSH
+      chmod +x ${driver_file}
+      sudo mkdir -p /nvidia
+      sudo mv ${driver_file} /nvidia
+      sudo yum update -y -q 
+      sudo yum install -y -q kernel-devel kernel-headers gcc-c++ perl pciutils
+      sudo yum install -y -q kernel-devel-\$(uname -r) kernel-headers-\$(uname -r)
+      eval "cat <<EOF
+blacklist nouveau
+options nouveau modeset=0
+EOF
+      " | sudo tee /etc/modprobe.d/denylist-nouveau.conf > /dev/null
+      sudo rmmod nouveau
+      sudo dracut --force
+      sudo reboot
+ENDSSH
+    sleep 60
+    ${SSHCMD} -T centos@${ip} <<ENDSSH
+      lsmod | grep nouveau
+      cd /nvidia
+      sudo ./${driver_file} -s
+      [ $(nvidia-smi | grep "Tesla" | wc -l) -eq 1 ] || exit 1 # "Nvidia driver installation didn't work!"
+      nvidia-modprobe -u -c=0
+      sudo reboot
+ENDSSH
+    sleep 30
+    echo "${vmname} installation completed, please add using GUI or provided worker add scripts"
+
     ;;
   gateway)
     vmname=$(get_name "gateway")

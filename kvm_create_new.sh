@@ -51,15 +51,15 @@ if [[ ! -f  "${LOCAL_SSH_PRV_KEY_PATH}" ]]; then
 fi
 
 # create VMs
-./bin/kvm_add_node.sh controller &
-./bin/kvm_add_node.sh gateway &
+./bin/kvm_add_host.sh controller &
+./bin/kvm_add_host.sh gateway &
 # ./bin/kvm_centos_vm.sh controller 16 $(expr 96 \* 1024) 512G || fail "cannot create controller" &
 # ./bin/kvm_centos_vm.sh gateway1 8 $(expr 24 \* 1024) || fail "cannot create gateway" &
 # # 2 hosts for K8s and 1 for EPIC
-./bin/kvm_add_node.sh kubenode &
+./bin/kvm_add_host.sh kubehost &
 # give time for vmname to be taken before
-sleep 30 && ./bin/kvm_add_node.sh kubenode & 
-sleep 60 && ./bin/kvm_add_node.sh epicnode &
+sleep 30 && ./bin/kvm_add_host.sh kubehost & 
+sleep 60 && ./bin/kvm_add_host.sh epichost &
 # ./bin/kvm_centos_vm.sh host1 16 $(expr 96 \* 1024) 512G || fail "cannot create host1" &
 # ./bin/kvm_centos_vm.sh host2 16 $(expr 96 \* 1024) 512G || fail "cannot create host2" &
 # ./bin/kvm_centos_vm.sh host3 12 $(expr 96 \* 1024) 512G || fail "cannot create host3" &
