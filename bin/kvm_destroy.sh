@@ -30,6 +30,7 @@ if [ -d ${VM_DIR} ]; then
             virsh destroy ${vm} &>/dev/null
             virsh undefine ${vm} &>/dev/null
 	        virsh pool-destroy ${vm} &>/dev/null
+	        virsh pool-undefine ${vm} &>/dev/null
         } &
     done
     wait # for all VMs to be destroyed

@@ -46,12 +46,16 @@ case ${TYPE} in
     ;;
   gpuhost)
     # # note that we are picking first available device here (head -n1), adjust as necessary
-    busid=$(lspci -nn | grep -i nvidia | grep -Eo '^..:..\..' | head -n1)
-    echo "using ${busid} for attached GPU"
+    busids=$(lspci -nn | grep -i nvidia | grep -Eo '^..:..\..' | xargs)
+    device_str=""
+    for busid in ${busids[@]}; do
+      device_str+="--host-device ${busid} "
+    done
+    echo "Attaching GPU(s) at ${busids}"
     vmname=$(get_name "gpuhost")
     echo "Creating ${vmname}"
-    ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G "--host-device ${busid}" || fail "cannot create ${vmname}"
-    sleep 30
+    ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G "${device_str}" || fail "cannot create ${vmname}"
+    wait_for_ssh "${ip}"
     driver_file="NVIDIA-Linux-x86_64-450.80.02.run"
     [[ -f ${driver_file} ]] || curl -# -o ${PROJECT_DIR}/${driver_file} "https://us.download.nvidia.com/tesla/450.80.02/NVIDIA-Linux-x86_64-450.80.02.run"
     ip=$(get_ip_for_vm "${vmname}")
@@ -73,13 +77,13 @@ EOF
       sudo dracut --force
       sudo reboot
 ENDSSH
-    sleep 60
+    wait_for_ssh "${ip}"
     echo "post-configuration for GPU"
     ${SSHCMD} -T centos@${ip} <<ENDSSH
       [ $(lsmod | grep nouveau | wc -l) -eq 0 ] || echo "conflicting video driver - nouveau"
       cd /nvidia
       sudo ./${driver_file} -s
-      [ $(nvidia-smi | grep "Tesla" | wc -l) -eq 1 ] || echo "Nvidia driver installation failed"
+      [ $(nvidia-smi | grep "Tesla" | wc -l) -ne 0 ] || echo "Nvidia driver installation failed"
       nvidia-modprobe -u -c=0
       sudo reboot
 ENDSSH

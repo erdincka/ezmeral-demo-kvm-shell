@@ -60,7 +60,7 @@ SSHCMD="ssh -o StrictHostKeyChecking=no -i ${LOCAL_SSH_PRV_KEY_PATH}"
 
 function fail {
    echo "ERROR: ${1}"
-   echo "RECOMMENDED ACTION: ${2:-'Check previous command output'}"
+   [ ! -z ${2} ] && echo "RECOMMENDED: ${2}"
    exit 1
 }
 
