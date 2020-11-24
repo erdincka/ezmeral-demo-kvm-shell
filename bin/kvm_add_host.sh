@@ -76,16 +76,17 @@ ENDSSH
     sleep 60
     echo "post-configuration for GPU"
     ${SSHCMD} -T centos@${ip} <<ENDSSH
-      [ $(lsmod | grep nouveau | wc -l) -eq 0 ] && echo "conflicting video driver - nouveau" && exit 1
+      [ $(lsmod | grep nouveau | wc -l) -eq 0 ] || echo "conflicting video driver - nouveau"
       cd /nvidia
       sudo ./${driver_file} -s
-      [ $(nvidia-smi | grep "Tesla" | wc -l) -eq 1 ] || exit 1 # "Nvidia driver installation didn't work!"
+      [ $(nvidia-smi | grep "Tesla" | wc -l) -eq 1 ] || echo "Nvidia driver installation failed"
       nvidia-modprobe -u -c=0
       sudo reboot
 ENDSSH
     echo "wait until ${vmname} becomes ready"
     wait_for_ssh "${ip}"
     echo "${vmname} installation completed, please add using GUI or provided worker add scripts"
+    echo "${SSHCMD} centos@${ip}" > "${OUTDIR}/ssh_${vmname}.sh"
     ;;
   gateway)
     vmname=$(get_name "gateway")
@@ -101,7 +102,7 @@ ENDSSH
     fail "Don't know how to do it yet"
     ;;
   *)
-    fail "Unknown node type"
+    usage
     ;;
 esac
 

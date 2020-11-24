@@ -53,16 +53,10 @@ fi
 # create VMs
 ./bin/kvm_add_host.sh controller &
 ./bin/kvm_add_host.sh gateway &
-# ./bin/kvm_centos_vm.sh controller 16 $(expr 96 \* 1024) 512G || fail "cannot create controller" &
-# ./bin/kvm_centos_vm.sh gateway1 8 $(expr 24 \* 1024) || fail "cannot create gateway" &
-# # 2 hosts for K8s and 1 for EPIC
 ./bin/kvm_add_host.sh kubehost &
 # give time for vmname to be taken before
 sleep 30 && ./bin/kvm_add_host.sh kubehost & 
 sleep 60 && ./bin/kvm_add_host.sh epichost &
-# ./bin/kvm_centos_vm.sh host1 16 $(expr 96 \* 1024) 512G || fail "cannot create host1" &
-# ./bin/kvm_centos_vm.sh host2 16 $(expr 96 \* 1024) 512G || fail "cannot create host2" &
-# ./bin/kvm_centos_vm.sh host3 12 $(expr 96 \* 1024) 512G || fail "cannot create host3" &
 
 if [[ "${AD_SERVER_ENABLED}" == "True" ]]; then
    ./bin/kvm_centos_vm.sh ad 4 $(expr 8 \* 1024) || fail "cannot create ad" &
@@ -130,18 +124,21 @@ else
 fi
 
 cat > "${OUT_DIR}"/get_public_endpoints.sh <<EOF
-
+cat <<EOE
 Controller: ${SSHCMD} centos@$(get_ip_for_vm controller1)
 Gateway: ${SSHCMD} centos@$(get_ip_for_vm gateway1)
 AD: ${SSHCMD} centos@$(get_ip_for_vm ad)
 Host1: ${SSHCMD} centos@$(get_ip_for_vm host1)
 Host2: ${SSHCMD} centos@$(get_ip_for_vm host2)
-Host3: ${SSHCMD} centos@(get_ip_for_vm host3)
+Host3: ${SSHCMD} centos@$(get_ip_for_vm host3)
 
+Alternatively you can ssh directly into hosts using ./generated/ssh_<hostname>.sh scripts.
+
+EOE
 EOF
 
-echo "${SSHCMD} centos@$(get_ip_for_vm controller1) \$1" > "${OUT_DIR}"/ssh_controller.sh
-echo "${SSHCMD} centos@$(get_ip_for_vm gateway1) \$1" > "${OUT_DIR}"/ssh_gateway.sh
+echo "${SSHCMD} centos@$(get_ip_for_vm controller1) \$1" > "${OUT_DIR}"/ssh_controller1.sh
+echo "${SSHCMD} centos@$(get_ip_for_vm gateway1) \$1" > "${OUT_DIR}"/ssh_gateway1.sh
 echo "${SSHCMD} centos@$(get_ip_for_vm ad) \$1" > "${OUT_DIR}"/ssh_ad.sh
 echo "${SSHCMD} centos@$(get_ip_for_vm host1) \$1" > "${OUT_DIR}"/ssh_host1.sh
 echo "${SSHCMD} centos@$(get_ip_for_vm host2) \$1" > "${OUT_DIR}"/ssh_host2.sh
