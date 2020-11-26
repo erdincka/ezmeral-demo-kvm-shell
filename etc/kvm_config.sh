@@ -7,13 +7,13 @@ BRIDGE=$(virsh net-info "${KVM_NETWORK}" | grep -e ^Bridge: | awk '{ print $2 }'
 
 # Gateway network
 # PUBLIC_BRIDGE="br-bond0"
-PUBLIC_DOMAIN=garage.dubai
-GATW_PUB_IP=10.1.1.22 # this script assumes this is /24 subnet - replace in kvm_create_new.sh if needed
-GATW_PUB_GW=10.1.1.1
-GATW_PUB_PREFIX=24
-GATW_PUB_HOST=ecp
+PUBLIC_DOMAIN="garage.dubai"
+GATW_PUB_IP="10.1.1.22"
+GATW_PUB_GW="10.1.1.1"
+GATW_PUB_PREFIX="24"
+GATW_PUB_HOST="ecp"
 GATW_PUB_DNS="${GATW_PUB_HOST}.${PUBLIC_DOMAIN}"
-AD_SERVER_ENABLED=True
+AD_SERVER_ENABLED="True"
 
 # Local settings
 TIMEZONE="Asia/Dubai"
@@ -22,10 +22,10 @@ CENTOS_DL_URL="http://10.1.1.202/files/osimages"/"${CENTOS_FILENAME}"
 EPIC_FILENAME="hpe-cp-rhel-release-5.1-3011.bin"
 EPIC_DL_URL="http://10.1.1.202/files/ezmeral/${EPIC_FILENAME}"
 
-PROJECT_DIR=/data/ecp
-VM_DIR="${PROJECT_DIR}"/vms
-OUT_DIR="${PROJECT_DIR}"/generated
-HOSTS_FILE="${OUT_DIR}"/hosts
+PROJECT_DIR="/data/ecp"
+VM_DIR="${PROJECT_DIR}/vms"
+OUT_DIR="${PROJECT_DIR}/generated"
+HOSTS_FILE="${OUT_DIR}/hosts"
 CA_KEY="${OUT_DIR}/ca-key.pem"
 CA_CERT="${OUT_DIR}/ca-cert.pem"
 LOCAL_SSH_PUB_KEY_PATH="${OUT_DIR}/controller.pub_key"
@@ -38,22 +38,22 @@ LOCAL_SSH_PRV_KEY_PATH="${OUT_DIR}/controller.prv_key"
 #
 HOST_INTERFACE=$(ip route show default | head -1 | cut -d' ' -f5)
 CLIENT_CIDR_BLOCK=$(ip a s dev ${HOST_INTERFACE} | awk /'inet / { print $2 }' | head -n1)
-VPC_CIDR_BLOCK=$CLIENT_CIDR_BLOCK
-REGION=ME
+VPC_CIDR_BLOCK="${CLIENT_CIDR_BLOCK}
+REGION="ME"
 EPIC_OPTIONS='--skipeula'
 
-CREATE_EIP_CONTROLLER=False
-CREATE_EIP_GATEWAY=True
+CREATE_EIP_CONTROLLER="False"
+CREATE_EIP_GATEWAY="True"
 
-INSTALL_WITH_SSL=True
+INSTALL_WITH_SSL="True"
 
-EPIC_DL_URL_NEEDS_PRESIGN=False
-SELINUX_DISABLED=True
-MAPR_CLUSTER1_COUNT=0 
-MAPR_CLUSTER2_COUNT=0 
-RDP_SERVER_ENABLED=False
+EPIC_DL_URL_NEEDS_PRESIGN="False"
+SELINUX_DISABLED="True"
+MAPR_CLUSTER1_COUNT="0"
+MAPR_CLUSTER2_COUNT="0"
+RDP_SERVER_ENABLED="False"
 RDP_SERVER_OPERATING_SYSTEM="LINUX"
-CREATE_EIP_RDP_LINUX_SERVER=False
+CREATE_EIP_RDP_LINUX_SERVER="False"
 
 # Helpers
 SSHCMD="ssh -o StrictHostKeyChecking=no -i ${LOCAL_SSH_PRV_KEY_PATH}"
