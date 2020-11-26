@@ -18,7 +18,7 @@ AD_SERVER_ENABLED="True"
 # Local settings
 TIMEZONE="Asia/Dubai"
 CENTOS_FILENAME="CentOS-7-x86_64-GenericCloud-2003.qcow2"
-CENTOS_DL_URL="http://10.1.1.202/files/osimages"/"${CENTOS_FILENAME}"
+CENTOS_DL_URL="http://10.1.1.202/files/osimages/${CENTOS_FILENAME}"
 EPIC_FILENAME="hpe-cp-rhel-release-5.1-3011.bin"
 EPIC_DL_URL="http://10.1.1.202/files/ezmeral/${EPIC_FILENAME}"
 
