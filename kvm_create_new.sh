@@ -67,7 +67,7 @@ wait # for all VMs to be ready
 {
    if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
       echo "Setting gateway public IP"
-      virsh attach-device gateway1 ./etc/passthrough_device.xml
+      virsh attach-device gateway1 --file ./etc/passthrough_device.xml --live --config
       # setsebool -P virt_use_sysfs 1 &>/dev/null # in case needed for CentOS/RHEL
       IFCFG=$(eval "cat <<EOF
 $(<./etc/ifcfg-eth1.template)
