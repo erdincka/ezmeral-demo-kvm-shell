@@ -55,10 +55,10 @@ case ${TYPE} in
     vmname=$(get_name "gpuhost")
     echo "Creating ${vmname}"
     ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G "${device_str}" || fail "cannot create ${vmname}"
+    ip=$(get_ip_for_vm "${vmname}")
     wait_for_ssh "${ip}"
     driver_file="NVIDIA-Linux-x86_64-450.80.02.run"
     [[ -f ${driver_file} ]] || curl -# -o ${PROJECT_DIR}/${driver_file} "https://us.download.nvidia.com/tesla/450.80.02/NVIDIA-Linux-x86_64-450.80.02.run"
-    ip=$(get_ip_for_vm "${vmname}")
     scp -o StrictHostKeyChecking=no -i ${LOCAL_SSH_PRV_KEY_PATH} ${PROJECT_DIR}/${driver_file} centos@${ip}:~
     echo "pre-configuration for GPU (might take a while)"
     ${SSHCMD} -T centos@${ip} << ENDSSH

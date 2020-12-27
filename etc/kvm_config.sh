@@ -38,7 +38,7 @@ LOCAL_SSH_PRV_KEY_PATH="${OUT_DIR}/controller.prv_key"
 #
 HOST_INTERFACE=$(ip route show default | head -1 | cut -d' ' -f5)
 CLIENT_CIDR_BLOCK=$(ip a s dev ${HOST_INTERFACE} | awk /'inet / { print $2 }' | head -n1)
-VPC_CIDR_BLOCK="${CLIENT_CIDR_BLOCK}
+VPC_CIDR_BLOCK="${CLIENT_CIDR_BLOCK}"
 REGION="ME"
 EPIC_OPTIONS='--skipeula'
 
