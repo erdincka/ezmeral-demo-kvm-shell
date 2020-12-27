@@ -92,7 +92,7 @@ ENDSSH
     echo "wait until ${vmname} becomes ready"
     wait_for_ssh "${ip}"
     echo "${vmname} installation completed, please add using GUI or provided worker add scripts"
-    echo "${SSHCMD} centos@${ip}" > "${OUTDIR}/ssh_${vmname}.sh"
+    echo "${SSHCMD} centos@${ip}" > "${OUT_DIR}/ssh_${vmname}.sh"
     ;;
   gateway)
     vmname=$(get_name "gateway")
