@@ -15,7 +15,7 @@ usage(){
   
   <type> is on of the following
   kubehost | epichost: 16-core 96GB memory
-  gpuhost: 16-core 96GB memory with pci-passthrough device (gpu-device.xml)
+  gpuhost: 16-core 96GB memory with pci-passthrough device (passthrough-device.xml)
   gateway: 8-core 24GB memory
   controller: 16-core 96GB memory
 
@@ -55,7 +55,9 @@ case ${TYPE} in
     vmname=$(get_name "gpuhost")
     echo "Creating ${vmname}"
     ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G "${device_str}" || fail "cannot create ${vmname}"
+    sleep 5
     ip=$(get_ip_for_vm "${vmname}")
+    echo -n "Connecting to ${ip}"
     wait_for_ssh "${ip}"
     driver_file="NVIDIA-Linux-x86_64-450.80.02.run"
     [[ -f ${driver_file} ]] || curl -# -o ${PROJECT_DIR}/${driver_file} "https://us.download.nvidia.com/tesla/450.80.02/NVIDIA-Linux-x86_64-450.80.02.run"

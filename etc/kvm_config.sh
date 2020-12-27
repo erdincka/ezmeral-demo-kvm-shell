@@ -73,7 +73,7 @@ function wait_for_ssh {
 }      
 
 function get_ip_for_vm {
-   echo -n $( echo $(virsh domifaddr ${1} --source agent | grep eth0 | head -n 1) | cut -d' ' -f 4 | cut -d'/' -f 1 )
+   echo -n $( echo $(virsh domifaddr ${1} --source agent | grep eth0 | grep ipv4 | head -n 1) | cut -d' ' -f 4 | cut -d'/' -f 1 )
 }
 
 # ref: https://unix.stackexchange.com/a/46086
