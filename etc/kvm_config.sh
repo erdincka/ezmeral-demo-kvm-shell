@@ -38,7 +38,7 @@ LOCAL_SSH_PRV_KEY_PATH="${OUT_DIR}/controller.prv_key"
 #
 HOST_INTERFACE=$(ip route show default | head -1 | cut -d' ' -f5)
 CLIENT_CIDR_BLOCK=$(ip a s dev ${HOST_INTERFACE} | awk /'inet / { print $2 }' | head -n1)
-VPC_CIDR_BLOCK="${CLIENT_CIDR_BLOCK}
+VPC_CIDR_BLOCK="${CLIENT_CIDR_BLOCK}"
 REGION="ME"
 EPIC_OPTIONS='--skipeula'
 
@@ -73,7 +73,7 @@ function wait_for_ssh {
 }      
 
 function get_ip_for_vm {
-   echo -n $( echo $(virsh domifaddr ${1} --source agent | grep eth0 | head -n 1) | cut -d' ' -f 4 | cut -d'/' -f 1 )
+   echo -n $( echo $(virsh domifaddr ${1} --source agent | grep eth0 | grep ipv4 | head -n 1) | cut -d' ' -f 4 | cut -d'/' -f 1 )
 }
 
 # ref: https://unix.stackexchange.com/a/46086

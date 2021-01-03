@@ -15,7 +15,7 @@ usage(){
   
   <type> is on of the following
   kubehost | epichost: 16-core 96GB memory
-  gpuhost: 16-core 96GB memory with pci-passthrough device (gpu-device.xml)
+  gpuhost: 16-core 96GB memory with pci-passthrough device (passthrough-device.xml)
   gateway: 8-core 24GB memory
   controller: 16-core 96GB memory
 
@@ -55,10 +55,12 @@ case ${TYPE} in
     vmname=$(get_name "gpuhost")
     echo "Creating ${vmname}"
     ./bin/kvm_centos_vm.sh ${vmname} 16 $(expr 96 \* 1024) 512G "${device_str}" || fail "cannot create ${vmname}"
+    sleep 5
+    ip=$(get_ip_for_vm "${vmname}")
+    echo -n "Connecting to ${ip}"
     wait_for_ssh "${ip}"
     driver_file="NVIDIA-Linux-x86_64-450.80.02.run"
     [[ -f ${driver_file} ]] || curl -# -o ${PROJECT_DIR}/${driver_file} "https://us.download.nvidia.com/tesla/450.80.02/NVIDIA-Linux-x86_64-450.80.02.run"
-    ip=$(get_ip_for_vm "${vmname}")
     scp -o StrictHostKeyChecking=no -i ${LOCAL_SSH_PRV_KEY_PATH} ${PROJECT_DIR}/${driver_file} centos@${ip}:~
     echo "pre-configuration for GPU (might take a while)"
     ${SSHCMD} -T centos@${ip} << ENDSSH
@@ -90,7 +92,7 @@ ENDSSH
     echo "wait until ${vmname} becomes ready"
     wait_for_ssh "${ip}"
     echo "${vmname} installation completed, please add using GUI or provided worker add scripts"
-    echo "${SSHCMD} centos@${ip}" > "${OUTDIR}/ssh_${vmname}.sh"
+    echo "${SSHCMD} centos@${ip}" > "${OUT_DIR}/ssh_${vmname}.sh"
     ;;
   gateway)
     vmname=$(get_name "gateway")
