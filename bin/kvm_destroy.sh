@@ -34,7 +34,7 @@ if [ -d ${VM_DIR} ]; then
         } &
     done
     wait # for all VMs to be destroyed
-    ssh-keygen -f "/home/ubuntu/.ssh/known_hosts" -R "${GATW_PUB_IP}" &>/dev/null
+    ssh-keygen -f "${HOME}/.ssh/known_hosts" -R "${GATW_PUB_IP}" &>/dev/null
     rm -rf ${VM_DIR} &>/dev/null
 fi
 

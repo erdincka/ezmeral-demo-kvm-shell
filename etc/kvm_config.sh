@@ -19,7 +19,8 @@ AD_SERVER_ENABLED="True"
 TIMEZONE="Asia/Dubai"
 CENTOS_FILENAME="CentOS-7-x86_64-GenericCloud-2003.qcow2"
 CENTOS_DL_URL="http://10.1.1.202/files/osimages/${CENTOS_FILENAME}"
-EPIC_FILENAME="hpe-cp-rhel-release-5.1-3011.bin"
+#EPIC_FILENAME="hpe-cp-rhel-release-5.1-3011.bin"
+EPIC_FILENAME="hpe-cp-rhel-release-5.2-3020.bin"
 EPIC_DL_URL="http://10.1.1.202/files/ezmeral/${EPIC_FILENAME}"
 
 PROJECT_DIR="/data/ecp"
@@ -40,7 +41,7 @@ HOST_INTERFACE=$(ip route show default | head -1 | cut -d' ' -f5)
 CLIENT_CIDR_BLOCK=$(ip a s dev ${HOST_INTERFACE} | awk /'inet / { print $2 }' | head -n1)
 VPC_CIDR_BLOCK="${CLIENT_CIDR_BLOCK}"
 REGION="ME"
-EPIC_OPTIONS='--skipeula'
+EPIC_OPTIONS='--skipeula --default-password admin123'
 
 CREATE_EIP_CONTROLLER="False"
 CREATE_EIP_GATEWAY="True"
