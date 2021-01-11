@@ -17,18 +17,10 @@ AD_SERVER_ENABLED="True"
 
 # Local settings
 TIMEZONE="Asia/Dubai"
-<<<<<<< HEAD
 CENTOS_FILENAME=CentOS-7-x86_64-GenericCloud-2003.qcow2
 CENTOS_DL_URL=http://10.1.1.202/files/osimages/CentOS-7-x86_64-GenericCloud-2003.qcow2
-EPIC_FILENAME=hpe-cp-rhel-release-5.1-3011.bin
-EPIC_DL_URL=http://10.1.1.202/files/ezmeral/hpe-cp-rhel-release-5.1-3011.bin
-=======
-CENTOS_FILENAME="CentOS-7-x86_64-GenericCloud-2003.qcow2"
-CENTOS_DL_URL="http://10.1.1.202/files/osimages/${CENTOS_FILENAME}"
-#EPIC_FILENAME="hpe-cp-rhel-release-5.1-3011.bin"
-EPIC_FILENAME="hpe-cp-rhel-release-5.2-3020.bin"
-EPIC_DL_URL="http://10.1.1.202/files/ezmeral/${EPIC_FILENAME}"
->>>>>>> bf08218477ef8a73e2930788b94251f925ec588f
+EPIC_FILENAME=hpe-cp-rhel-release-5.2-3020.bin
+EPIC_DL_URL=http://10.1.1.202/files/ezmeral/hpe-cp-rhel-release-5.2-3020.bin
 
 PROJECT_DIR=/data/ecp
 VM_DIR="${PROJECT_DIR}/vms"
