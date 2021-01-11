@@ -30,7 +30,7 @@ echo "Checking host prerequisites"
 ./scripts/check_prerequisites.sh || fail "pre-requisites failed for host"
 
 # checking network for ${DOMAIN} resolution
-[ $(virsh net-dumpxml ${KVM_NETWORK} | grep ${DOMAIN} | wc -l) -eq 1 ] || fail '''
+[ $(sudo virsh net-dumpxml ${KVM_NETWORK} | grep ${DOMAIN} | wc -l) -eq 1 ] || fail '''
 ERROR: VM network "'${KVM_NETWORK}'" not configured for local domain resolution
 You can use recommended settings with ./bin/kvm_prepare_network.sh (edit before use) or use steps below.
 - Edit net (virsh net-edit '${KVM_NETWORK}')
