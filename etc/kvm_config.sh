@@ -2,27 +2,27 @@
 
 # VM Network
 DOMAIN=ecp.demo
-KVM_NETWORK=default
-BRIDGE=$(virsh net-info "${KVM_NETWORK}" | grep -e ^Bridge: | awk '{ print $2 }')
+KVM_NETWORK="default"
+BRIDGE=$(sudo virsh net-info "${KVM_NETWORK}" | grep -e ^Bridge: | awk '{ print $2 }')
 
 # Gateway network
 # PUBLIC_BRIDGE="br-bond0"
-PUBLIC_DOMAIN=garage.dubai
-GATW_PUB_IP=10.1.1.23
-GATW_PUB_GW=10.1.1.1
-GATW_PUB_PREFIX=24
-GATW_PUB_HOST=ecp2
+PUBLIC_DOMAIN="garage.dubai"
+GATW_PUB_IP="10.1.1.22"
+GATW_PUB_GW="10.1.1.1"
+GATW_PUB_PREFIX="24"
+GATW_PUB_HOST="ecp"
 GATW_PUB_DNS="${GATW_PUB_HOST}.${PUBLIC_DOMAIN}"
 AD_SERVER_ENABLED="True"
 
 # Local settings
 TIMEZONE="Asia/Dubai"
-CENTOS_FILENAME=CentOS-7-x86_64-GenericCloud-2003.qcow2
-CENTOS_DL_URL=http://10.1.1.202/files/osimages/CentOS-7-x86_64-GenericCloud-2003.qcow2
-EPIC_FILENAME=hpe-cp-rhel-release-5.2-3020.bin
-EPIC_DL_URL=http://10.1.1.202/files/ezmeral/hpe-cp-rhel-release-5.2-3020.bin
+CENTOS_FILENAME="CentOS-7-x86_64-GenericCloud-2003.qcow2"
+CENTOS_DL_URL="http://10.1.1.202/files/osimages/CentOS-7-x86_64-GenericCloud-2003.qcow2"
+EPIC_FILENAME="hpe-cp-rhel-release-5.1-3011.bin"
+EPIC_DL_URL="http://10.1.1.202/files/ezmeral/hpe-cp-rhel-release-5.1-3011.bin"
 
-PROJECT_DIR=/data/ecp
+PROJECT_DIR="/data/ecp"
 VM_DIR="${PROJECT_DIR}/vms"
 OUT_DIR="${PROJECT_DIR}/generated"
 HOSTS_FILE="${OUT_DIR}/hosts"
