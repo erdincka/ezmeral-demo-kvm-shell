@@ -25,8 +25,8 @@ EOF
 " 2> /dev/null)
 
 # clean up
-virsh destroy "${NAME}" &> /dev/null 
-virsh undefine "${NAME}" &> /dev/null 
+sudo virsh destroy "${NAME}" &> /dev/null 
+sudo virsh undefine "${NAME}" &> /dev/null 
 rm -rf "${VM_DIR}"/"${NAME}" # clean up existing files
 
 mkdir -p "${VM_DIR}"/"${NAME}"
@@ -45,7 +45,7 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null || fail "cannot find vmdir ${NAME}"
         DATADISKS="--disk ${DISK2},format=qcow2,bus=virtio --disk ${DISK3},format=qcow2,bus=virtio"
     fi
 
-    virt-install \
+    sudo virt-install \
         --import \
         --name ${NAME} \
         --memory ${MEM} \
@@ -55,7 +55,7 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null || fail "cannot find vmdir ${NAME}"
         --network bridge="${BRIDGE}",model=virtio \
         --os-type Linux \
         --os-variant centos7.0 \
-        --noautoconsole ${INSTALL_OPTIONS} &> /dev/null || fail "virt-install failed"
+        --noautoconsole ${INSTALL_OPTIONS} || fail "virt-install failed"
 
     MAC=$(sudo virsh dumpxml ${NAME} | awk -F\' '/mac address/ {print $2}' | head -n 1)
     
@@ -73,11 +73,11 @@ pushd "${VM_DIR}"/"${NAME}" > /dev/null || fail "cannot find vmdir ${NAME}"
     done
 
     # Eject cdrom
-    virsh change-media "${NAME}" sda --eject --config &> /dev/null
+    sudo virsh change-media "${NAME}" sda --eject --config &> /dev/null
     # Remove the cloud init file
     rm -f "${META_DATA}" "${USER_DATA}" "${NAME}-ci.iso" &> /dev/null
     # set autostart at boot
-    virsh autostart ${NAME} &> /dev/null 
+    sudo virsh autostart ${NAME} &> /dev/null 
     # completed
     # echo "${NAME} ready at: ssh -i ${LOCAL_SSH_PRV_KEY_PATH} -o StrictHostKeyChecking=no centos@${IP:-noIP}"
 

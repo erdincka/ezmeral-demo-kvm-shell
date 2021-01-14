@@ -27,10 +27,10 @@ if [ -d ${VM_DIR} ]; then
             vm=${dir[i]}
             # clean from auth cache
             ssh-keygen -f "${HOME}/.ssh/known_hosts" -R "$(get_ip_for_vm ${vm})" &>/dev/null
-            virsh destroy ${vm} &>/dev/null
-            virsh undefine ${vm} &>/dev/null
-	        virsh pool-destroy ${vm} &>/dev/null
-	        virsh pool-undefine ${vm} &>/dev/null
+            sudo virsh destroy ${vm} &>/dev/null
+            sudo virsh undefine ${vm} &>/dev/null
+	        sudo virsh pool-destroy ${vm} &>/dev/null
+	        sudo virsh pool-undefine ${vm} &>/dev/null
         } &
     done
     wait # for all VMs to be destroyed

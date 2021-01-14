@@ -29,7 +29,7 @@ TYPE=${1}
 
 get_name() {
   # find the last num for given hostname if there is any digit at the end of vm name
-  lastnum=$(virsh list --all --name | grep ${1} | sort | tail -n1 | grep -o '[[:digit:]]*$')
+  lastnum=$(sudo virsh list --all --name | grep ${1} | sort | tail -n1 | grep -o '[[:digit:]]*$')
   # return the name with incremented no
   echo "${1}`expr ${lastnum} + 1`"
 }

@@ -8,10 +8,10 @@ BRIDGE=$(sudo virsh net-info "${KVM_NETWORK}" | grep -e ^Bridge: | awk '{ print 
 # Gateway network
 # PUBLIC_BRIDGE="br-bond0"
 PUBLIC_DOMAIN="garage.dubai"
-GATW_PUB_IP="10.1.1.22"
+GATW_PUB_IP="10.1.1.23"
 GATW_PUB_GW="10.1.1.1"
 GATW_PUB_PREFIX="24"
-GATW_PUB_HOST="ecp"
+GATW_PUB_HOST="ecp2"
 GATW_PUB_DNS="${GATW_PUB_HOST}.${PUBLIC_DOMAIN}"
 AD_SERVER_ENABLED="True"
 
@@ -73,7 +73,7 @@ function wait_for_ssh {
 }      
 
 function get_ip_for_vm {
-   echo -n $( echo $(virsh domifaddr ${1} --source agent | grep eth0 | grep ipv4 | head -n 1) | cut -d' ' -f 4 | cut -d'/' -f 1 )
+   echo -n $( echo $(sudo virsh domifaddr ${1} --source agent | grep eth0 | grep ipv4 | head -n 1) | cut -d' ' -f 4 | cut -d'/' -f 1 )
 }
 
 # ref: https://unix.stackexchange.com/a/46086

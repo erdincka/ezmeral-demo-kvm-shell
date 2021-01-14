@@ -34,19 +34,19 @@ echo "Checking network settings"
 [ $(sudo virsh net-dumpxml ${KVM_NETWORK} | grep ${DOMAIN} | wc -l) -eq 1 ] || fail '''
 ERROR: VM network "'${KVM_NETWORK}'" not configured for local domain resolution
 You can use recommended settings with ./bin/kvm_prepare_network.sh (edit before use) or use steps below.
-- Edit net (virsh net-edit '${KVM_NETWORK}')
+- Edit net (sudo virsh net-edit '${KVM_NETWORK}')
   - Add: <domain name="'${DOMAIN}'" localOnly="yes" />
-- Destroy net (virsh net-destroy '${KVM_NETWORK}')
-- Start net with new settings (virsh net-start '${KVM_NETWORK}')
+- Destroy net (sudo virsh net-destroy '${KVM_NETWORK}')
+- Start net with new settings (sudo virsh net-start '${KVM_NETWORK}')
 - Restart service (sudo systemctl restart libvirtd.service)
 '''
 
-[[ $(virsh net-info ${KVM_NETWORK} | grep -e ^Active: | awk '{ print $2 }') == "yes" ]] && echo "Using ${KVM_NETWORK} network" || sudo virsh net-start ${KVM_NETWORK}
+[[ $(sudo virsh net-info ${KVM_NETWORK} | grep -e ^Active: | awk '{ print $2 }') == "yes" ]] && echo "Using ${KVM_NETWORK} network" || sudo virsh net-start ${KVM_NETWORK}
 
 # Need the key pair for paswordless login
 if [[ ! -f  "${LOCAL_SSH_PRV_KEY_PATH}" ]]; then
    echo "Setting up private/public keys"
-   ssh-keygen -m pem -t rsa -N "" -f "${LOCAL_SSH_PRV_KEY_PATH}" &>/dev/null
+   ssh-keygen -m pem -t rsa -N '' -f "${LOCAL_SSH_PRV_KEY_PATH}" &>/dev/null
    mv "${LOCAL_SSH_PRV_KEY_PATH}.pub" "${LOCAL_SSH_PUB_KEY_PATH}"
    chmod 600 "${LOCAL_SSH_PRV_KEY_PATH}"
 fi
@@ -68,7 +68,7 @@ wait # for all VMs to be ready
 {
    if [ "${CREATE_EIP_GATEWAY}" == "True" ]; then
       echo "Setting gateway public IP"
-      virsh attach-device gateway1 --file ./etc/passthrough_device.xml --live --config
+      sudo virsh attach-device gateway1 --file ./etc/passthrough_device.xml --live --config
       # setsebool -P virt_use_sysfs 1 &>/dev/null # in case needed for CentOS/RHEL
       IFCFG=$(eval "cat <<EOF
 $(<./etc/ifcfg-eth1.template)
