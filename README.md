@@ -71,8 +71,8 @@ Ref: https://wiki.libvirt.org/page/Networking
 
 ### Collect and customize
 ```shell
-git clone https://github.com/hpe-container-platform-community/hcp-demo-env-kvm-bash.git 
-cd hcp-demo-env-kvm-bash
+git clone https://github.com/erdincka/ezmeral-demo-kvm-shell 
+cd ezmeral-demo-kvm-shell
 vi etc/kvm_config.sh
 ```
 
@@ -135,7 +135,7 @@ Open a browser to gateway
 
 - [ ] Enable mounted image catalog (nfs to avoid copying catalog images)
 
-- [ ] Use AWS scripts as subproject instead of manually downloading files
+- [ ] Clone and use AWS downstream repo instead of manually downloading files
 
 # Troubleshooting 
 
